@@ -14,7 +14,7 @@ public:
     PowerNotify(HWND hWnd);
     ~PowerNotify();
 
-public slots:
+signals:
     void RedrawSignal();
 
 private:

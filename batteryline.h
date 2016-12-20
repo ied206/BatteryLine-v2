@@ -54,6 +54,10 @@ private:
     QSystemTrayIcon* trayIcon;
     QAction* exitAct;
     QAction* printBannerAct;
+
+#ifdef Q_OS_WIN
+    HWND hWnd;
+#endif
 };
 
 #endif // BATTERYLINE_H
