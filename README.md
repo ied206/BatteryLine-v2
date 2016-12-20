@@ -3,6 +3,8 @@ BatteryLine shows system's battery status as line in screen.
 
 Written in Qt5, for Windows and Linux.
 
+BatteryLine 2.0 is still in develop. For production version, please use [BatteryLine-Legacy](https://github.com/ied206/BatteryLine-Legacy).
+
 # Usage
 Compile and launch BatteryLine.exe.
 
