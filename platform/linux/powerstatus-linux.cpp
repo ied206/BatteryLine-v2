@@ -1,4 +1,4 @@
-#include "batterystatus-linux.h"
+#include "powerstatus-linux.h"
 #include "../../systemhelper.h"
 
 #include <QSysInfo>
@@ -10,7 +10,7 @@
 #include <QtDBus>
 #endif
 
-BatteryStatus::BatteryStatus()
+PowerStatus::PowerStatus()
 {
     if (!QDBusConnection::systemBus().isConnected())
         SystemHelper::SystemError("[Linux] Cannot connect to D-Bus' system bus");
@@ -18,10 +18,10 @@ BatteryStatus::BatteryStatus()
     dBusDisplayDevice = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
     dBusLinePowerAC = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/line_power_AC", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
 
-    GetBatteryStatus();
+    Update();
 }
 
-BatteryStatus::~BatteryStatus()
+PowerStatus::~PowerStatus()
 {
     delete dBusDisplayDevice;
     delete dBusLinePowerAC;
@@ -31,7 +31,7 @@ BatteryStatus::~BatteryStatus()
 }
 
 // Return true if success
-void BatteryStatus::GetBatteryStatus()
+void PowerStatus::Update()
 {
     // https://upower.freedesktop.org/docs/Device.html
     QVariant batteryLevel = dBusDisplayDevice->property("Percentage"); // double

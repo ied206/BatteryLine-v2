@@ -8,6 +8,9 @@
 #include <QDebug>
 #include <QDesktopWidget>
 #include <QMessageBox>
+#include <QDesktopServices>
+#include <QUrl>
+#include <QFileInfo>
 
 BatteryLine::BatteryLine(QWidget *parent) :
     QWidget(parent),
@@ -27,7 +30,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
 #endif
 
     // Init Member Variables
-    m_batStat = new BatteryStatus();
+    m_powerStat = new PowerStatus();
 #ifdef Q_OS_WIN
     m_powerNotify = new PowerNotify(hWnd);
 #endif
@@ -37,7 +40,13 @@ BatteryLine::BatteryLine(QWidget *parent) :
 
     trayIconMenu = nullptr;
     trayIcon = nullptr;
+
     printBannerAct = nullptr;
+    printHelpAct = nullptr;
+    openHomepageAct = nullptr;
+    openLicenseAct = nullptr;
+    openSettingAct = nullptr;
+    printPowerInfoAct = nullptr;
     exitAct = nullptr;
 
     // Connect Signal with m_powerNotify
@@ -54,22 +63,106 @@ BatteryLine::BatteryLine(QWidget *parent) :
 BatteryLine::~BatteryLine()
 {
     delete ui;
-    delete m_batStat;
+    delete m_powerStat;
     delete m_powerNotify;
 
     delete trayIconMenu;
     delete trayIcon;
+
     delete printBannerAct;
+    delete printHelpAct;
+    delete openHomepageAct;
+    delete openLicenseAct;
+    delete openSettingAct;
+    delete printPowerInfoAct;
     delete exitAct;
 
     ui = nullptr;
-    m_batStat = nullptr;
+    m_powerStat = nullptr;
     m_powerNotify = nullptr;
 
     trayIconMenu = nullptr;
     trayIcon = nullptr;
+
     printBannerAct = nullptr;
+    printHelpAct = nullptr;
+    openHomepageAct = nullptr;
+    openLicenseAct = nullptr;
+    openSettingAct = nullptr;
+    printPowerInfoAct = nullptr;
     exitAct = nullptr;
+}
+
+void BatteryLine::RedrawLine()
+{
+    m_powerStat->Update();
+    SetColor();
+    SetWindowSizePos();
+}
+
+// Must update m_batStat first
+void BatteryLine::SetWindowSizePos()
+{
+    QRect mainMonitorRect = QApplication::desktop()->availableGeometry(-1); // -1 == Main Monitor
+    QRect appPosSize;
+    appPosSize.setLeft(mainMonitorRect.left());
+    appPosSize.setTop(mainMonitorRect.top());
+    if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
+        appPosSize.setWidth(mainMonitorRect.width());
+    else
+        appPosSize.setWidth((mainMonitorRect.width() * m_powerStat->m_BatteryLevel) / 100);
+    appPosSize.setHeight(5);
+
+    qDebug() << "[Monitor]";
+    qDebug() << "Left   : " << appPosSize.left();
+    qDebug() << "Top    : " << appPosSize.top();
+    qDebug() << "Width  : " << appPosSize.width();
+    qDebug() << "Height : " << appPosSize.height() << "\n";
+
+#ifdef Q_OS_WIN
+    // Evade TaskBar if option is set
+    RECT trayPos;
+    HWND hTray = FindWindowW(L"Shell_TrayWnd", NULL);
+    if (hTray == NULL || GetWindowRect(hTray, &trayPos) == 0)
+        SystemHelper::SystemError(tr("Cannot get taskbar's position"));
+#endif
+
+    setGeometry(appPosSize);
+    updateGeometry();
+}
+
+// Must update m_batStat first
+void BatteryLine::SetColor()
+{
+    QPalette palette;
+    QColor color;
+    color.setAlpha(255);
+
+    if (m_powerStat->m_ACLineStatus == false) // Not Charging, running on battery
+    {
+        qDebug() << "Not Charging";
+        color.setRed(0);
+        color.setGreen(255);
+        color.setBlue(0);
+    }
+    else if (m_powerStat->m_BatteryFull == true) // Not Charging, because battery is full
+    { // Even though BatteryLifePercent is not 100, consider it as 100
+        qDebug() << "Battery Full";
+        color.setRed(0);
+        color.setGreen(162);
+        color.setBlue(232);
+    }
+    else if (m_powerStat->m_BatteryCharging == true)  // Charging, and show charge color option set
+    {
+        color.setRed(0);
+        color.setGreen(200);
+        color.setBlue(255);
+    }
+    else
+        SystemHelper::SystemError("[General] Invalid battery status data");
+
+    palette.setColor(QPalette::Background, color);
+    this->setPalette(palette);
 }
 
 // http://doc.qt.io/qt-5/qtwidgets-mainwindows-menus-example.html
@@ -90,6 +183,29 @@ void BatteryLine::CreateTrayIcon()
     printBannerAct->setIcon(icon);
     connect(printBannerAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintBanner);
     trayIconMenu->addAction(printBannerAct);
+
+    printHelpAct = new QAction(tr("&Help"), this);
+    connect(printHelpAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintHelp);
+    trayIconMenu->addAction(printHelpAct);
+    trayIconMenu->addSeparator();
+
+    openHomepageAct = new QAction(tr("&Homepage"), this);
+    connect(openHomepageAct, &QAction::triggered, this, &BatteryLine::TrayMenuHomepage);
+    trayIconMenu->addAction(openHomepageAct);
+
+    openLicenseAct = new QAction(tr("&License"), this);
+    connect(openLicenseAct, &QAction::triggered, this, &BatteryLine::TrayMenuLicense);
+    trayIconMenu->addAction(openLicenseAct);
+    trayIconMenu->addSeparator();
+
+    openSettingAct = new QAction(tr("&Setting"), this);
+    connect(openSettingAct, &QAction::triggered, this, &BatteryLine::TrayMenuSetting);
+    trayIconMenu->addAction(openSettingAct);
+
+    printPowerInfoAct = new QAction(tr("&Power Info"), this);
+    connect(printPowerInfoAct, &QAction::triggered, this, &BatteryLine::TrayMenuPowerInfo);
+    trayIconMenu->addAction(printPowerInfoAct);
+    trayIconMenu->addSeparator();
 
     exitAct = new QAction(tr("E&xit"), this);
     connect(exitAct, &QAction::triggered, this, &BatteryLine::TrayMenuExit);
@@ -135,8 +251,8 @@ void BatteryLine::TrayMenuPrintBanner()
 {
     QString msgStr, webBinary, webSource;
 
-    webBinary = QString::fromWCharArray(BL_WebBinary);
-    webSource = QString::fromWCharArray(BL_WebSource);
+    webBinary = QString::fromWCharArray(BL_WEB_BINARY);
+    webSource = QString::fromWCharArray(BL_WEB_SOURCE);
     msgStr = QString("Joveler's BatteryLine v%1.%2 (%3bit)\n"
                   "Show battery status as line in screen.\n\n"
                   "[Binary] %4\n"
@@ -152,7 +268,7 @@ void BatteryLine::TrayMenuPrintBanner()
             .arg(SystemHelper::CompileDay());
 
     QMessageBox msgBox;
-    msgBox.setText(tr("BatteryLine"));
+    msgBox.setText(QString::fromWCharArray(BL_PROG_NAME));
     msgBox.setInformativeText(msgStr);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
@@ -163,76 +279,91 @@ void BatteryLine::TrayMenuPrintBanner()
     //QMessageBox::information(this, tr("BatteryLine"), msg);
 }
 
-void BatteryLine::RedrawLine()
+void BatteryLine::TrayMenuPrintHelp()
 {
-    m_batStat->GetBatteryStatus();
-    SetColor();
-    SetWindowSizePos();
+    QString msgStr, webBinary, webSource;
+
+    webBinary = QString::fromWCharArray(BL_WEB_BINARY);
+    webSource = QString::fromWCharArray(BL_WEB_SOURCE);
+    msgStr = QString("[BatteryLine Help Message]\n"
+                  "Show battery status as line in screen.\n\n"
+                  "[Command Line Option]\n"
+                 "-q : Launch this program without notification.\n"
+                 "-h : Print this help message and exit.\n\n"
+                 "[Setting]\n"
+                 "You can edit BatteryLine's setting in BatteryLine.ini.");
+
+    QMessageBox msgBox;
+    msgBox.setText(QString::fromWCharArray(BL_PROG_NAME));
+    msgBox.setInformativeText(msgStr);
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+
+    // This method crashes Linux Mint's Cinnamon Desktop
+    //QMessageBox::information(this, tr("BatteryLine"), msg);
 }
 
-// Must update m_batStat first
-void BatteryLine::SetWindowSizePos()
+void BatteryLine::TrayMenuHomepage()
 {
-    QRect mainMonitorRect = QApplication::desktop()->availableGeometry(-1); // -1 == Main Monitor
-    QRect appPosSize;
-    appPosSize.setLeft(mainMonitorRect.left());
-    appPosSize.setTop(mainMonitorRect.top());
-    if (m_batStat->m_BatteryFull) // Not Charging, because battery is full
-        appPosSize.setWidth(mainMonitorRect.width());
+    // Open project homepage
+    QDesktopServices::openUrl(QUrl(QString::fromWCharArray(BL_WEB_BINARY)));
+}
+
+void BatteryLine::TrayMenuLicense()
+{
+    // Open GitHub repository's LICENSE page
+    QDesktopServices::openUrl(QUrl(QString::fromWCharArray(BL_WEB_LICENSE)));
+}
+
+void BatteryLine::TrayMenuSetting()
+{
+    // Open BatteryLine.ini
+    QDesktopServices::openUrl(QUrl(GetIniFullPath()));
+}
+
+void BatteryLine::TrayMenuPowerInfo()
+{
+    m_powerStat->Update();
+
+    QString msgAcPower, msgCharge, msgFull;
+    if (m_powerStat->m_ACLineStatus == true)
+        msgAcPower = tr("AC");
     else
-        appPosSize.setWidth((mainMonitorRect.width() * m_batStat->m_BatteryLevel) / 100);
-    appPosSize.setHeight(5);
+        msgAcPower = tr("Battery");
 
-    qDebug() << "[Monitor]";
-    qDebug() << "Left   : " << appPosSize.left();
-    qDebug() << "Top    : " << appPosSize.top();
-    qDebug() << "Width  : " << appPosSize.width();
-    qDebug() << "Height : " << appPosSize.height() << "\n";
-
-#ifdef Q_OS_WIN
-    // Evade TaskBar if option is set
-    RECT trayPos;
-    HWND hTray = FindWindowW(L"Shell_TrayWnd", NULL);
-    if (hTray == NULL || GetWindowRect(hTray, &trayPos) == 0)
-        SystemHelper::SystemError(tr("Cannot get taskbar's position"));
-#endif
-
-    setGeometry(appPosSize);
-    updateGeometry();
-}
-
-// Must update m_batStat first
-void BatteryLine::SetColor()
-{
-    QPalette palette;
-    QColor color;
-    color.setAlpha(255);
-
-    if (m_batStat->m_ACLineStatus == false) // Not Charging, running on battery
-    {
-        qDebug() << "Not Charging";
-        color.setRed(0);
-        color.setGreen(255);
-        color.setBlue(0);
-    }
-    else if (m_batStat->m_BatteryFull == true) // Not Charging, because battery is full
-    { // Even though BatteryLifePercent is not 100, consider it as 100
-        qDebug() << "Battery Full";
-        color.setRed(0);
-        color.setGreen(162);
-        color.setBlue(232);
-    }
-    else if (m_batStat->m_BatteryCharging == true)  // Charging, and show charge color option set
-    {
-        color.setRed(0);
-        color.setGreen(200);
-        color.setBlue(255);
-    }
+    if (m_powerStat->m_BatteryFull == true)
+        msgCharge = tr("Full");
+    else if (m_powerStat->m_BatteryCharging == true)
+        msgCharge = tr("Charging");
+    else if (m_powerStat->m_ACLineStatus == false)
+        msgCharge = tr("Using Battery");
     else
         SystemHelper::SystemError("[General] Invalid battery status data");
 
-    palette.setColor(QPalette::Background, color);
-    this->setPalette(palette);
+    msgFull = QString("Power Source : %1\n"
+                     "Battery Status : %2\n"
+                     "Battery Percent : %3%\n")
+            .arg(msgAcPower)
+            .arg(msgCharge)
+            .arg(m_powerStat->m_BatteryLevel);
+
+    QMessageBox msgBox;
+    msgBox.setText(tr("Power Info"));
+    msgBox.setInformativeText(msgFull);
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+}
+
+QString BatteryLine::GetIniFullPath()
+{
+    QString path = QCoreApplication::applicationDirPath();
+    path.append(tr("/")); // Qt will translate / to \ if it runs on Windows
+    path.append(QString::fromWCharArray(BL_SETTING_FILE));
+    return path;
 }
 
 #ifdef Q_OS_WIN
@@ -247,15 +378,11 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
         {
         case WM_POWERBROADCAST:
             qDebug() << "WM_POWERBROADCAST";
-            m_batStat->GetBatteryStatus();
-            SetWindowSizePos();
-            SetColor();
+            RedrawLine();
             break;
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
             qDebug() << "WM_DISPLAYCHANGE";
-            m_batStat->GetBatteryStatus();
-            SetWindowSizePos();
-            SetColor();
+            RedrawLine();
             break;
         default:
             break;

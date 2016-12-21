@@ -1,4 +1,4 @@
-#include "batterystatus-win.h"
+#include "powerstatus-win.h"
 #include "../../systemhelper.h"
 
 #include <QSysInfo>
@@ -11,18 +11,18 @@
 #endif
 
 
-BatteryStatus::BatteryStatus()
+PowerStatus::PowerStatus()
 {
-    GetBatteryStatus();
+    Update();
 }
 
-BatteryStatus::~BatteryStatus()
+PowerStatus::~PowerStatus()
 {
 
 }
 
 // Return true if success
-void BatteryStatus::GetBatteryStatus()
+void PowerStatus::Update()
 {
     bool success = true;
     SYSTEM_POWER_STATUS batStat;

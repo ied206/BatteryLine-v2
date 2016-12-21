@@ -10,11 +10,11 @@
 
 #ifdef Q_OS_WIN
 #include "platform/win/powernotify-win.h"
-#include "platform/win/batterystatus-win.h"
+#include "platform/win/powerstatus-win.h"
 #endif
 #ifdef Q_OS_LINUX
 #include "platform/linux/powernotify-linux.h"
-#include "platform/linux/batterystatus-linux.h"
+#include "platform/linux/powerstatus-linux.h"
 #endif
 
 namespace Ui {
@@ -36,8 +36,14 @@ protected:
 
 private slots:
     void TrayIconClicked(QSystemTrayIcon::ActivationReason reason);
-    void TrayMenuExit();
     void TrayMenuPrintBanner();
+    void TrayMenuPrintHelp();
+    void TrayMenuHomepage();
+    void TrayMenuLicense();
+    void TrayMenuSetting();
+    void TrayMenuPowerInfo();
+    void TrayMenuExit();
+
     void RedrawLine();
 
 private:
@@ -47,13 +53,21 @@ private:
     void SetWindowSizePos();
     void SetColor();
     void CreateTrayIcon();
+    QString GetIniFullPath();
 
     PowerNotify* m_powerNotify;
-    BatteryStatus* m_batStat;
+    PowerStatus* m_powerStat;
+
     QMenu* trayIconMenu;
     QSystemTrayIcon* trayIcon;
-    QAction* exitAct;
+
     QAction* printBannerAct;
+    QAction* printHelpAct;
+    QAction* openHomepageAct;
+    QAction* openLicenseAct;
+    QAction* openSettingAct;
+    QAction* printPowerInfoAct;
+    QAction* exitAct;
 
 #ifdef Q_OS_WIN
     HWND hWnd;

@@ -130,6 +130,7 @@ void SystemHelper::SystemError(QString errorMsg)
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
+
     QCoreApplication::exit(1);
 }
 

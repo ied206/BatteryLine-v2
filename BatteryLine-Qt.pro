@@ -30,18 +30,18 @@ SOURCES += main.cpp\
     systemhelper.cpp
 
 win32: SOURCES += platform/win/powernotify-win.cpp \
-    platform/win/batterystatus-win.cpp
+    platform/win/powerstatus-win.cpp
 linux: SOURCES += platform/linux/powernotify-linux.cpp \
-    platform/linux/batterystatus-linux.cpp
+    platform/linux/powerstatus-linux.cpp
 
 HEADERS  += batteryline.h \
     var.h \
     systemhelper.h
 
 win32: HEADERS += platform/win/powernotify-win.h \
-    platform/win/batterystatus-win.h
+    platform/win/powerstatus-win.h
 linux: HEADERS += platform/linux/powernotify-linux.h \
-    platform/linux/batterystatus-linux.h
+    platform/linux/powerstatus-linux.h
 
 FORMS    += batteryline.ui
 

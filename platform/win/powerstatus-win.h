@@ -8,7 +8,7 @@
  *
  */
 
-class BatteryStatus
+class PowerStatus
 {
 public:
     bool m_BatteryExist; // Is this system has battery?
@@ -17,9 +17,9 @@ public:
     bool m_BatteryFull; // Is battery full?
     bool m_ACLineStatus; // Is this system is charging with AC Line?
 
-    BatteryStatus();
-    ~BatteryStatus();
-    void GetBatteryStatus();
+    PowerStatus();
+    ~PowerStatus();
+    void Update();
 };
 
 #endif // BATTERYSTATUS_H
