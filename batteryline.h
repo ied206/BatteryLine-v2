@@ -3,8 +3,6 @@
 
 // sudo apt install libgl-dev
 
-#include "batterystatus.h"
-
 #include <QWidget>
 #include <QMenu>
 #include <QSystemTrayIcon>
@@ -12,9 +10,11 @@
 
 #ifdef Q_OS_WIN
 #include "platform/win/powernotify-win.h"
+#include "platform/win/batterystatus-win.h"
 #endif
 #ifdef Q_OS_LINUX
 #include "platform/linux/powernotify-linux.h"
+#include "platform/linux/batterystatus-linux.h"
 #endif
 
 namespace Ui {

@@ -26,20 +26,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        batteryline.cpp \
-    batterystatus.cpp \
+     batteryline.cpp \
     systemhelper.cpp
 
-win32: SOURCES += platform/win/powernotify-win.cpp
-linux: SOURCES += platform/linux/powernotify-linux.cpp
+win32: SOURCES += platform/win/powernotify-win.cpp \
+    platform/win/batterystatus-win.cpp
+linux: SOURCES += platform/linux/powernotify-linux.cpp \
+    platform/linux/batterystatus-linux.cpp
 
 HEADERS  += batteryline.h \
-    batterystatus.h \
     var.h \
     systemhelper.h
 
-win32: HEADERS += platform/win/powernotify-win.h
-linux: HEADERS += platform/linux/powernotify-linux.h
+win32: HEADERS += platform/win/powernotify-win.h \
+    platform/win/batterystatus-win.h
+linux: HEADERS += platform/linux/powernotify-linux.h \
+    platform/linux/batterystatus-linux.h
 
 FORMS    += batteryline.ui
 
@@ -47,7 +49,6 @@ RESOURCES += \
     batteryline-qt.qrc
 
 win32 {
-    SOURCES +=
     LIBS += kernel32.lib user32.lib
 # http://doc.qt.io/qt-5/appicon.html
     RC_ICONS = images/Cycle.ico

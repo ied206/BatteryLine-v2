@@ -29,7 +29,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
     // Init Member Variables
     m_batStat = new BatteryStatus();
 #ifdef Q_OS_WIN
-    m_powerNotify = new PowerNotify( hWnd);
+    m_powerNotify = new PowerNotify(hWnd);
 #endif
 #ifdef Q_OS_LINUX
     m_powerNotify = new PowerNotify();

@@ -8,6 +8,10 @@
  *
  */
 
+#ifdef Q_OS_LINUX
+#include <QtDBus>
+#endif
+
 class BatteryStatus
 {
 public:
@@ -22,6 +26,8 @@ public:
     void GetBatteryStatus();
 
 private:
+    QDBusInterface* dBusDisplayDevice;
+    QDBusInterface* dBusLinePowerAC;
 };
 
 #endif // BATTERYSTATUS_H
