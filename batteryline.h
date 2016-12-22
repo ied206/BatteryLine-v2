@@ -3,10 +3,15 @@
 
 // sudo apt install libgl-dev
 
+#include "Var.h"
+
 #include <QWidget>
 #include <QMenu>
 #include <QSystemTrayIcon>
 #include <QString>
+#include <QSettings>
+
+#include "settingdialog.h"
 
 #ifdef Q_OS_WIN
 #include "platform/win/powernotify-win.h"
@@ -35,6 +40,11 @@ protected:
 #endif
 
 private slots:
+    void PrimaryScreenChanged();
+    void ScreenCountChanged(int newCount);
+    void ScreenResized(int screen);
+    void ScreenWorkAreaResized(int screen);
+
     void TrayIconClicked(QSystemTrayIcon::ActivationReason reason);
     void TrayMenuPrintBanner();
     void TrayMenuPrintHelp();
@@ -44,7 +54,12 @@ private slots:
     void TrayMenuPowerInfo();
     void TrayMenuExit();
 
-    void RedrawLine();
+    void DrawLine();
+
+    void SettingGeneral(SettingGeneralKey key, QVariant entry);
+    void SettingBasicColor(SettingBasicColorKey key, QVariant entry);
+    void SettingCustomColor(SettingCustomColorKey key, int index, QVariant entry);
+
 
 private:
     Ui::BatteryLine *ui;
@@ -54,9 +69,14 @@ private:
     void SetColor();
     void CreateTrayIcon();
     QString GetIniFullPath();
+    void ReadSettings();
+    void WriteSettings(bool defaultValue = false);
 
     PowerNotify* m_powerNotify;
     PowerStatus* m_powerStat;
+
+    QSettings* m_setting;
+    BL_OPTION m_option;
 
     QMenu* trayIconMenu;
     QSystemTrayIcon* trayIcon;

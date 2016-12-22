@@ -27,7 +27,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += main.cpp\
      batteryline.cpp \
-    systemhelper.cpp
+    systemhelper.cpp \
+    settingdialog.cpp
 
 win32: SOURCES += platform/win/powernotify-win.cpp \
     platform/win/powerstatus-win.cpp
@@ -36,14 +37,16 @@ linux: SOURCES += platform/linux/powernotify-linux.cpp \
 
 HEADERS  += batteryline.h \
     var.h \
-    systemhelper.h
+    systemhelper.h \
+    settingdialog.h
 
 win32: HEADERS += platform/win/powernotify-win.h \
     platform/win/powerstatus-win.h
 linux: HEADERS += platform/linux/powernotify-linux.h \
     platform/linux/powerstatus-linux.h
 
-FORMS    += batteryline.ui
+FORMS    += batteryline.ui \
+    settingdialog.ui
 
 RESOURCES += \
     batteryline-qt.qrc

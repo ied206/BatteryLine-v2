@@ -121,7 +121,7 @@ int SystemHelper::CompileDay()
     return atoi(stmp);
 }
 
-void SystemHelper::SystemError(QString errorMsg)
+void SystemHelper::SystemError(const QString errorMsg)
 {
     QMessageBox msgBox;
     msgBox.setText("BatteryLine Error");
@@ -134,3 +134,38 @@ void SystemHelper::SystemError(QString errorMsg)
     QCoreApplication::exit(1);
 }
 
+QString SystemHelper::RGB_QColorToQString(const QColor color)
+{
+    return QString("%1, %2, %3")
+        .arg(color.red())
+        .arg(color.green())
+        .arg(color.blue());
+}
+
+QColor SystemHelper::RGB_QStringToQColor(const QString str)
+{
+    QColor color;
+
+    QStringList list = str.trimmed().split(",");
+    if (list.count() != 3)
+        SystemError("[Setting] Invalid color value, must be form of {R, G, B}");
+
+    for (int i = 0; i < list.count(); i++)
+    {
+        int val = list[i].trimmed().toInt();
+        switch (i)
+        {
+        case 0:
+            color.setRed(val);
+            break;
+        case 1:
+            color.setGreen(val);
+            break;
+        case 2:
+            color.setBlue(val);
+            break;
+        }
+    }
+
+    return color;
+}

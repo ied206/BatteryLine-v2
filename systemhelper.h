@@ -2,6 +2,7 @@
 #define BASICIO_H
 
 #include <QString>
+#include <QColor>
 #include <cstdint>
 
 class SystemHelper
@@ -13,7 +14,9 @@ public:
     static int CompileYear();
     static int CompileMonth();
     static int CompileDay();
-    static void SystemError(QString errorMsg);
+    static void SystemError(const QString errorMsg);
+    static QString RGB_QColorToQString(const QColor color);
+    static QColor RGB_QStringToQColor(const QString str);
 };
 
 #endif // BASICIO_H
