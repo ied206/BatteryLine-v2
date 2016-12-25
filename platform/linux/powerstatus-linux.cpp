@@ -68,11 +68,13 @@ void PowerStatus::Update()
         break;
     }
 
+#ifdef _DEBUG
     qDebug() << "[BatteryStatus]";
     qDebug() << "BatteryExist    : " << m_BatteryExist;
     qDebug() << "BatteryLevel    : " << m_BatteryLevel;
     qDebug() << "BatteryCharging : " << m_BatteryCharging;
     qDebug() << "BatteryFull     : " << m_BatteryFull;
     qDebug() << "ACLineStatus    : " << m_ACLineStatus << "\n";
+#endif
 }
 

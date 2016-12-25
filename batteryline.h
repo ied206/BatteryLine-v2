@@ -3,7 +3,7 @@
 
 // sudo apt install libgl-dev
 
-#include "Var.h"
+#include "var.h"
 
 #include <QWidget>
 #include <QMenu>
@@ -54,23 +54,21 @@ private slots:
     void TrayMenuPowerInfo();
     void TrayMenuExit();
 
-    void DrawLine();
-
-    void SettingGeneral(SettingGeneralKey key, QVariant entry);
-    void SettingBasicColor(SettingBasicColorKey key, QVariant entry);
-    void SettingCustomColor(SettingCustomColorKey key, int index, QVariant entry);
-
+    void SettingSlotGeneral(SettingGeneralKey key, QVariant entry);
+    void SettingSlotBasicColor(SettingBasicColorKey key, QVariant entry);
+    void SettingSlotCustomColor(SettingCustomColorKey key, int index, QVariant entry);
+    void SettingSlotDefault();
 
 private:
     Ui::BatteryLine *ui;
-    void RegisterPowerNotification();
-    void UnregisterPowerNotification();
+    void DrawLine();
     void SetWindowSizePos();
     void SetColor();
     void CreateTrayIcon();
     QString GetIniFullPath();
     void ReadSettings();
-    void WriteSettings(bool defaultValue = false);
+    void WriteSettings();
+    BL_OPTION DefaultSettings();
 
     PowerNotify* m_powerNotify;
     PowerStatus* m_powerStat;

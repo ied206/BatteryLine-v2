@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>399</width>
-    <height>557</height>
+    <width>420</width>
+    <height>520</height>
    </rect>
   </property>
   <property name="font">
@@ -23,8 +23,8 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>520</y>
-     <width>381</width>
+     <y>480</y>
+     <width>401</width>
      <height>32</height>
     </rect>
    </property>
@@ -32,15 +32,15 @@
     <enum>Qt::Horizontal</enum>
    </property>
    <property name="standardButtons">
-    <set>QDialogButtonBox::Close|QDialogButtonBox::Reset</set>
+    <set>QDialogButtonBox::Ok|QDialogButtonBox::Reset</set>
    </property>
   </widget>
   <widget class="QGroupBox" name="customColorGroupBox">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>400</y>
-     <width>381</width>
+     <y>360</y>
+     <width>401</width>
      <height>111</height>
     </rect>
    </property>
@@ -57,69 +57,39 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>361</width>
-      <height>79</height>
+      <width>381</width>
+      <height>85</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="2" column="3">
-      <widget class="QPushButton" name="customColorPushButton">
+     <item row="0" column="4">
+      <widget class="QCheckBox" name="customEnableCheckBox">
        <property name="text">
-        <string>PushButton</string>
-       </property>
-       <property name="flat">
-        <bool>true</bool>
+        <string>Enable</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
-      <widget class="QSpinBox" name="highEdgeSpinBox"/>
-     </item>
-     <item row="2" column="1">
+     <item row="1" column="2">
       <widget class="QSpinBox" name="lowEdgeSpinBox"/>
      </item>
-     <item row="0" column="1" colspan="3">
-      <widget class="QComboBox" name="customColorComboBox">
-       <item>
-        <property name="text">
-         <string>1</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>2</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>3</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>4</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>5</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>6</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>7</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>8</string>
-        </property>
-       </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_23">
+       <property name="text">
+        <string>Color</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLabel" name="label_22">
+       <property name="text">
+        <string>HighEdge</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
      </item>
      <item row="0" column="0">
@@ -129,18 +99,62 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="0" rowspan="2">
-      <widget class="QLabel" name="thresholLabel">
-       <property name="text">
-        <string>Threshold 1</string>
+     <item row="1" column="4">
+      <widget class="QSpinBox" name="highEdgeSpinBox">
+       <property name="maximum">
+        <number>100</number>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_22">
+     <item row="1" column="0">
+      <widget class="QLabel" name="thresholLabel">
        <property name="text">
-        <string>HighEdge</string>
+        <string>Threshold</string>
        </property>
+      </widget>
+     </item>
+     <item row="0" column="1" colspan="3">
+      <widget class="QComboBox" name="customEnableComboBox">
+       <item>
+        <property name="text">
+         <string>Threshold 1</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 2</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 3</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 4</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 5</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 6</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 7</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Threshold 8</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item row="1" column="1">
@@ -148,12 +162,21 @@
        <property name="text">
         <string>LowEdge</string>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
       </widget>
      </item>
-     <item row="1" column="3">
-      <widget class="QLabel" name="label_23">
+     <item row="2" column="1" colspan="4">
+      <widget class="QPushButton" name="customColorPushButton">
+       <property name="autoFillBackground">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string>Color</string>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -164,8 +187,8 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>270</y>
-     <width>379</width>
+     <y>240</y>
+     <width>401</width>
      <height>121</height>
     </rect>
    </property>
@@ -183,7 +206,7 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>361</width>
+      <width>381</width>
       <height>98</height>
      </rect>
     </property>
@@ -219,7 +242,7 @@
         <bool>true</bool>
        </property>
        <property name="text">
-        <string>PushButton</string>
+        <string>Color</string>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -240,7 +263,7 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QPushButton" name="chargingColorPushButton">
+      <widget class="QPushButton" name="chargeColorPushButton">
        <property name="font">
         <font>
          <family>Segoe UI</family>
@@ -251,7 +274,7 @@
         <bool>true</bool>
        </property>
        <property name="text">
-        <string>PushButton</string>
+        <string>Color</string>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -283,7 +306,7 @@
         <bool>true</bool>
        </property>
        <property name="text">
-        <string>PushButton</string>
+        <string>Color</string>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -298,8 +321,8 @@
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>379</width>
-     <height>251</height>
+     <width>401</width>
+     <height>231</height>
     </rect>
    </property>
    <property name="font">
@@ -316,8 +339,8 @@
      <rect>
       <x>10</x>
       <y>20</y>
-      <width>361</width>
-      <height>222</height>
+      <width>381</width>
+      <height>201</height>
      </rect>
     </property>
     <property name="font">
@@ -437,8 +460,47 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label">
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Charging Color</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="showChargeCheckBox">
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Use Charging Color</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="font">
+        <font>
+         <family>Segoe UI</family>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Line Align</string>
+       </property>
+      </widget>
+     </item>
      <item row="4" column="1">
-      <widget class="QComboBox" name="taskbarComboBox">
+      <widget class="QComboBox" name="alignComboBox">
        <property name="font">
         <font>
          <family>Segoe UI</family>
@@ -447,12 +509,12 @@
        </property>
        <item>
         <property name="text">
-         <string>Evade</string>
+         <string>Left / Top</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Ignore</string>
+         <string>RIght / Bottom</string>
         </property>
        </item>
       </widget>
@@ -471,71 +533,19 @@
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QRadioButton" name="mainMonitorRadioButton">
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>10</pointsize>
-        </font>
-       </property>
+      <widget class="QCheckBox" name="mainMonitorCheckBox">
        <property name="text">
-        <string>Main Monitor</string>
+        <string>Use Primary Monitor</string>
        </property>
       </widget>
      </item>
-     <item row="7" column="1">
+     <item row="6" column="1">
       <widget class="QComboBox" name="customMonitorComboBox">
        <property name="font">
         <font>
          <family>Segoe UI</family>
          <pointsize>10</pointsize>
         </font>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QCheckBox" name="showChargeCheckBox">
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>10</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Use Charging Color</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label">
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>10</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Charging Color</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="font">
-        <font>
-         <family>Segoe UI</family>
-         <pointsize>10</pointsize>
-        </font>
-       </property>
-       <property name="text">
-        <string>Evade Taskbar</string>
-       </property>
-      </widget>
-     </item>
-     <item row="6" column="1">
-      <widget class="QRadioButton" name="curstomMonitorRadioButton">
-       <property name="text">
-        <string>Custom Monitor</string>
        </property>
       </widget>
      </item>
@@ -548,17 +558,14 @@
   <tabstop>positionComboBox</tabstop>
   <tabstop>transparencySpinBox</tabstop>
   <tabstop>showChargeCheckBox</tabstop>
-  <tabstop>taskbarComboBox</tabstop>
-  <tabstop>mainMonitorRadioButton</tabstop>
-  <tabstop>curstomMonitorRadioButton</tabstop>
+  <tabstop>alignComboBox</tabstop>
+  <tabstop>mainMonitorCheckBox</tabstop>
   <tabstop>customMonitorComboBox</tabstop>
   <tabstop>defaultColorPushButton</tabstop>
-  <tabstop>chargingColorPushButton</tabstop>
+  <tabstop>chargeColorPushButton</tabstop>
   <tabstop>fullColorPushButton</tabstop>
-  <tabstop>customColorComboBox</tabstop>
-  <tabstop>lowEdgeSpinBox</tabstop>
-  <tabstop>highEdgeSpinBox</tabstop>
-  <tabstop>customColorPushButton</tabstop>
+  <tabstop>customEnableComboBox</tabstop>
+  <tabstop>customEnableCheckBox</tabstop>
  </tabstops>
  <resources/>
  <connections>

@@ -44,11 +44,13 @@ void PowerStatus::Update()
     else
         SystemHelper::SystemError(QObject::tr("[Windows] Cannot get power state"));
 
+#ifdef _DEBUG
     qDebug() << "[BatteryStatus]";
     qDebug() << "BatteryExist    : " << m_BatteryExist;
     qDebug() << "BatteryLevel    : " << m_BatteryLevel;
     qDebug() << "BatteryCharging : " << m_BatteryCharging;
     qDebug() << "BatteryFull     : " << m_BatteryFull;
     qDebug() << "ACLineStatus    : " << m_ACLineStatus << "\n";
+#endif
 }
 

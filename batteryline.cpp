@@ -20,6 +20,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
     ui->setupUi(this);
 
     // Layered Window + Always On Top
+    // In Cinnamon/XOrg, window which has Qt::X11BypassWindowManagerHint cannot be parent of other window.
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 
 #ifdef Q_OS_WIN
@@ -74,8 +75,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
     memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
     ReadSettings();
 
-    // Set Windows Size and Position, Color
-    setAutoFillBackground(true);
+    // Set Window Size and Position, Color
     DrawLine();
 }
 
@@ -138,51 +138,16 @@ void BatteryLine::SetWindowSizePos()
 {
     QRect screenWorkRect; // availableGeometry - Resolution excluding taskbar
     QRect screenFullRect; // screenGeometry - Full resoultion
-    QRect appRect, trayRect;
-    SettingPosition taskbar;
+    QRect appRect;
     int targetScreen = 0;
 
     if (m_option.mainMonitor == true) // Main Monitor
         targetScreen = -1;
     else // Custom Monitor
-        targetScreen = m_option.customMonitor - 1;
+        targetScreen = m_option.customMonitor;
 
     screenWorkRect = QApplication::desktop()->availableGeometry(targetScreen);
     screenFullRect = QApplication::desktop()->screenGeometry(targetScreen);
-
-    // Calculate where taskbar is, using screenWorkRect and screenFullRect's relation.
-    if (screenFullRect.top() != screenWorkRect.top())
-    { // TaskBar is on TOP
-        taskbar = SettingPosition::Top;
-        trayRect.setLeft(screenFullRect.left());
-        trayRect.setTop(screenFullRect.top());
-        trayRect.setWidth(screenFullRect.width());
-        trayRect.setHeight(screenWorkRect.top() - screenFullRect.top());
-    }
-    else if (screenFullRect.bottom() != screenWorkRect.bottom())
-    { // TaskBar is on BOTTOM
-        taskbar = SettingPosition::Bottom;
-        trayRect.setLeft(screenFullRect.left());
-        trayRect.setTop(screenWorkRect.bottom());
-        trayRect.setWidth(screenFullRect.width());
-        trayRect.setHeight(screenFullRect.bottom() - screenWorkRect.bottom());
-    }
-    else if (screenFullRect.left() != screenWorkRect.left())
-    { // TaskBar is on LEFT
-        taskbar = SettingPosition::Left;
-        trayRect.setLeft(screenFullRect.left());
-        trayRect.setTop(screenFullRect.top());
-        trayRect.setWidth(screenWorkRect.left() - screenFullRect.left());
-        trayRect.setHeight(screenFullRect.height());
-    }
-    else if (screenFullRect.right() != screenWorkRect.right())
-    { // TaskBar is on RIGHT
-        taskbar = SettingPosition::Right;
-        trayRect.setLeft(screenWorkRect.right());
-        trayRect.setTop(screenFullRect.top());
-        trayRect.setWidth(screenFullRect.width());
-        trayRect.setHeight(screenFullRect.height());
-    }
 
     int appLeft = 0;
     int appTop = 0;
@@ -191,71 +156,55 @@ void BatteryLine::SetWindowSizePos()
 
     switch (m_option.position)
     {
-    case SettingPosition::Top:
+    case static_cast<int>(SettingPosition::Top):
         if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
-            appWidth = screenFullRect.width();
+            appWidth = screenWorkRect.width();
         else
-            appWidth = (screenFullRect.width() * m_powerStat->m_BatteryLevel) / 100;
-
-        // Evade taskbar or not
-        if (m_option.taskbar == static_cast<int>(SettingTaskBar::Evade)
-                  && taskbar == SettingPosition::Top) // TaskBar is on TOP - conflict
-            appTop = trayRect.bottom();
-        else // TaskBar is on BOTTOM | LEFT | RIGHT
-            appTop = screenFullRect.top();
-
-        appLeft = screenFullRect.left();
+            appWidth = (screenWorkRect.width() * m_powerStat->m_BatteryLevel) / 100;
+        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appLeft = screenWorkRect.left();
+        else // static_cast<int>(SettingAlign::RightBottom)
+            appLeft = screenWorkRect.left() + screenWorkRect.width() - appWidth;
+        appTop = screenWorkRect.top();
         appHeight = m_option.height;
         break;
 
-    case SettingPosition::Bottom:
+    case static_cast<int>(SettingPosition::Bottom):
         if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
-            appWidth = screenFullRect.width();
+            appWidth = screenWorkRect.width();
         else
-            appWidth = (screenFullRect.width() * m_powerStat->m_BatteryLevel) / 100;
-
-        // Evade taskbar or not
-        if (m_option.taskbar == static_cast<int>(SettingTaskBar::Evade)
-                  && taskbar == SettingPosition::Bottom) // TaskBar is on BOTTOM - conflict
-            appTop = trayRect.top() - m_option.height;
-        else // TaskBar is on TOP | LEFT | RIGHT
-            appTop = screenFullRect.bottom() - m_option.height;
-
-        appLeft = screenFullRect.left();
+            appWidth = (screenWorkRect.width() * m_powerStat->m_BatteryLevel) / 100;
+        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appLeft = screenWorkRect.left();
+        else // static_cast<int>(SettingAlign::RightBottom)
+            appLeft = screenWorkRect.left() + screenWorkRect.width() - appWidth;
+        appTop = screenWorkRect.top() + screenWorkRect.height() - m_option.height;
         appHeight = m_option.height;
         break;
 
-    case SettingPosition::Left:
+    case static_cast<int>(SettingPosition::Left):
         if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
-            appHeight = screenFullRect.height();
+            appHeight = screenWorkRect.height();
         else
-            appHeight = (screenFullRect.height() * m_powerStat->m_BatteryLevel) / 100;
-
-        // Evade taskbar or not
-        if (m_option.taskbar == static_cast<int>(SettingTaskBar::Evade)
-                  && taskbar == SettingPosition::Left) // TaskBar is on LEFT - conflict
-            appLeft = trayRect.left() + trayRect.width();
-        else // TaskBar is on TOP | BOTTOM | RIGHT
-            appLeft = screenFullRect.left();
-
-        appTop = screenFullRect.top();
+            appHeight = (screenWorkRect.height() * m_powerStat->m_BatteryLevel) / 100;
+        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appTop = screenWorkRect.top();
+        else // static_cast<int>(SettingAlign::RightBottom)
+            appTop = screenWorkRect.top() + screenWorkRect.height() - appHeight;
+        appLeft = screenWorkRect.left();
         appWidth = m_option.height;
         break;
 
-    case SettingPosition::Right:
+    case static_cast<int>(SettingPosition::Right):
         if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
-            appHeight = screenFullRect.height();
+            appHeight = screenWorkRect.height();
         else
-            appHeight = (screenFullRect.height() * m_powerStat->m_BatteryLevel) / 100;
-
-        // Evade taskbar or not
-        if (m_option.taskbar == static_cast<int>(SettingTaskBar::Evade)
-                  && taskbar == SettingPosition::Right) // TaskBar is on Right - conflict
-            appLeft = trayRect.left() - m_option.height;
-        else // TaskBar is on TOP | BOTTOM | LEFT
-            appLeft = screenFullRect.left() + screenFullRect.width() - m_option.height;
-
-        appTop = screenFullRect.top();
+            appHeight = (screenWorkRect.height() * m_powerStat->m_BatteryLevel) / 100;
+        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appTop = screenWorkRect.top();
+        else // static_cast<int>(SettingAlign::RightBottom)
+            appTop = screenWorkRect.top() + screenWorkRect.height() - appHeight;
+        appLeft = screenWorkRect.left() + screenWorkRect.width() - m_option.height;
         appWidth = m_option.height;
         break;
     }
@@ -268,15 +217,15 @@ void BatteryLine::SetWindowSizePos()
     setGeometry(appRect);
     updateGeometry();
 
+#ifdef _DEBUG
     qDebug() << QString("[Monitor]");
     qDebug() << QString("Displaying on monitor %1").arg(m_option.customMonitor);
     qDebug() << QString("Base Coordinate        : (%1, %2)").arg(screenFullRect.left()).arg(screenFullRect.top());
     qDebug() << QString("Screen Resolution      : (%1, %2)").arg(screenFullRect.width()).arg(screenFullRect.height());
-    qDebug() << QString("Taskbar Coordinate     : (%1, %2)").arg(trayRect.left()).arg(trayRect.top());
-    qDebug() << QString("Taskbar Resolution     : (%1, %2)").arg(trayRect.width()).arg(trayRect.height());
     qDebug() << QString("BatteryLine Coordinate : (%1, %2)").arg(appRect.left()).arg(appRect.top());
     qDebug() << QString("BatteryLine Resolution : (%1, %2)").arg(appRect.width()).arg(appRect.height());
     qDebug() << "";
+#endif
 }
 
 // Must update m_batStat first
@@ -284,31 +233,30 @@ void BatteryLine::SetColor()
 {
     QPalette palette;
     QColor color;
-    color.setAlpha(255);
     setWindowOpacity(static_cast<qreal>(m_option.transparency) / 255);
 
-    if (m_powerStat->m_ACLineStatus == false) // Not Charging, running on battery
-    {
-        qDebug() << "Not Charging";
-        color.setRed(0);
-        color.setGreen(255);
-        color.setBlue(0);
-    }
+    if (m_option.showCharge == true && m_powerStat->m_BatteryCharging == true)  // Charging, and show charge color option set
+        color = m_option.chargeColor;
     else if (m_powerStat->m_BatteryFull == true) // Not Charging, because battery is full
-    { // Even though BatteryLifePercent is not 100, consider it as 100
-        qDebug() << "Battery Full";
-        color.setRed(0);
-        color.setGreen(162);
-        color.setBlue(232);
-    }
-    else if (m_powerStat->m_BatteryCharging == true)  // Charging, and show charge color option set
+        color = m_option.fullColor; // Even though BatteryLifePercent is not 100, consider it as 100
+    else if (m_option.showCharge == false || m_powerStat->m_ACLineStatus == false) // Not Charging, running on battery
     {
-        color.setRed(0);
-        color.setGreen(200);
-        color.setBlue(255);
+        color = m_option.defaultColor;
+        for (int i = 0; i < BL_COLOR_LEVEL; i++)
+        {
+            if (m_option.customEnable[i])
+            {
+                if (m_option.lowEdge[i] < m_powerStat->m_BatteryLevel && m_powerStat->m_BatteryLevel <= m_option.highEdge[i])
+                {
+                    color = m_option.customColor[i];
+                    break;
+                }
+            }
+        }
     }
     else
         SystemHelper::SystemError("[General] Invalid battery status data");
+    color.setAlpha(255);
 
     palette.setColor(QPalette::Background, color);
     this->setPalette(palette);
@@ -346,7 +294,7 @@ void BatteryLine::CreateTrayIcon()
     trayIcon->setContextMenu(trayIconMenu);
 
     // Icon
-    QIcon icon = QIcon(":/images/Cycle.png");
+    QIcon icon = QIcon(BL_ICON);
     trayIcon->setIcon(icon);
     setWindowIcon(icon);
 
@@ -395,7 +343,7 @@ void BatteryLine::TrayIconClicked(QSystemTrayIcon::ActivationReason reason)
     switch(reason)
     {
     case QSystemTrayIcon::Trigger: // SingleClick
-        TrayMenuPrintBanner();
+        TrayMenuSetting();
         break;
     case QSystemTrayIcon::Context: // RightClick
     case QSystemTrayIcon::DoubleClick: // DoubleClick
@@ -432,15 +380,13 @@ void BatteryLine::TrayMenuPrintBanner()
             .arg(SystemHelper::CompileDay());
 
     QMessageBox msgBox;
+    msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setText(BL_APP_NAME);
     msgBox.setInformativeText(msgStr);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
-
-    // This method crashes Linux Mint's Cinnamon Desktop
-    //QMessageBox::information(this, tr("BatteryLine"), msg);
 }
 
 void BatteryLine::TrayMenuPrintHelp()
@@ -458,15 +404,13 @@ void BatteryLine::TrayMenuPrintHelp()
                  "You can edit BatteryLine's setting in BatteryLine.ini.");
 
     QMessageBox msgBox;
+    msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setText(BL_APP_NAME);
     msgBox.setInformativeText(msgStr);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
-
-    // This method crashes Linux Mint's Cinnamon Desktop
-    //QMessageBox::information(this, tr("BatteryLine"), msg);
 }
 
 void BatteryLine::TrayMenuHomepage()
@@ -483,14 +427,17 @@ void BatteryLine::TrayMenuLicense()
 
 void BatteryLine::TrayMenuSetting()
 {
-    SettingDialog dialog(this);
-    connect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingGeneral(SettingGeneralKey, QVariant)));
-    connect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingBasicColor(SettingBasicColorKey,QVariant)));
-    connect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingCustomColor(SettingCustomColorKey, int, QVariant)));
+    // SettingDialog dialog(m_option, this);
+    SettingDialog dialog(m_option, DefaultSettings(), 0);
+    connect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingSlotGeneral(SettingGeneralKey, QVariant)));
+    connect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingSlotBasicColor(SettingBasicColorKey,QVariant)));
+    connect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingSlotCustomColor(SettingCustomColorKey, int, QVariant)));
+    connect(&dialog, SIGNAL(SignalDefaultSetting()), this, SLOT(SettingSlotDefault()));
     dialog.exec();
-    disconnect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingGeneral(SettingGeneralKey, QVariant)));
-    disconnect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingBasicColor(SettingBasicColorKey,QVariant)));
-    disconnect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingCustomColor(SettingCustomColorKey, int, QVariant)));
+    disconnect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingSlotGeneral(SettingGeneralKey, QVariant)));
+    disconnect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingSlotBasicColor(SettingBasicColorKey,QVariant)));
+    disconnect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingSlotCustomColor(SettingCustomColorKey, int, QVariant)));
+    disconnect(&dialog, SIGNAL(SignalDefaultSetting()), this, SLOT(SettingSlotDefault()));
 }
 
 void BatteryLine::TrayMenuPowerInfo()
@@ -528,7 +475,7 @@ void BatteryLine::TrayMenuPowerInfo()
     msgBox.exec();
 }
 
-void BatteryLine::SettingGeneral(SettingGeneralKey key, QVariant entry)
+void BatteryLine::SettingSlotGeneral(SettingGeneralKey key, QVariant entry)
 {
     switch (key)
     {
@@ -544,89 +491,80 @@ void BatteryLine::SettingGeneral(SettingGeneralKey key, QVariant entry)
     case SettingGeneralKey::ShowCharge:
         m_option.showCharge = entry.toBool();
         break;
-    case SettingGeneralKey::TaskBar:
-        m_option.taskbar = entry.toUInt();
+    case SettingGeneralKey::Align:
+        m_option.align = entry.toUInt();
         break;
-    case SettingGeneralKey::Monitor:
-        if (entry.toUInt() == static_cast<int>(SettingMonitor::Primary))
+    case SettingGeneralKey::MainMonitor:
+        if (entry.toBool())
             m_option.mainMonitor = true;
         else
-            m_option.customMonitor = entry.toUInt();
+            m_option.mainMonitor = false;
+        break;
+    case SettingGeneralKey::CustomMonitor:
+        m_option.customMonitor = entry.toUInt();
         break;
     }
 
     DrawLine();
     WriteSettings();
-
-    qDebug() << static_cast<int>(key);
-    qDebug() << entry;
 }
 
-void BatteryLine::SettingBasicColor(SettingBasicColorKey key, QVariant entry)
+void BatteryLine::SettingSlotBasicColor(SettingBasicColorKey key, QVariant entry)
 {
-    m_setting->beginGroup("basicColor");
-
     switch (key)
     {
     case SettingBasicColorKey::DefaultColor:
-        m_option.defaultColor = entry.toInt();
-        m_setting->setValue("defaultcolor", entry);
+        m_option.defaultColor = entry.value<QColor>();
         break;
     case SettingBasicColorKey::ChargeColor:
-        m_option.chargeColor = entry.toInt();
-        m_setting->setValue("chargecolor", entry);
+        m_option.chargeColor = entry.value<QColor>();
         break;
     case SettingBasicColorKey::FullColor:
-        m_option.fullColor = entry.toInt();
-        m_setting->setValue("fullcolor", entry);
+        m_option.fullColor = entry.value<QColor>();
         break;
     }
 
-    m_setting->endGroup();
     DrawLine();
-
-    qDebug() << static_cast<int>(key);
-    qDebug() << entry;
+    WriteSettings();
 }
 
-void BatteryLine::SettingCustomColor(SettingCustomColorKey key, int index, QVariant entry)
+void BatteryLine::SettingSlotCustomColor(SettingCustomColorKey key, int index, QVariant entry)
 {
-    m_setting->beginGroup("customColor");
-
     switch (key)
     {
+    case SettingCustomColorKey::Enable:
+        m_option.customEnable[index] = entry.toBool();
+        break;
     case SettingCustomColorKey::LowEdge:
         m_option.lowEdge[index] = entry.toInt();
-        m_setting->setValue(QString("lowedge%1").arg(index), entry);
         break;
     case SettingCustomColorKey::HighEdge:
         m_option.highEdge[index] = entry.toInt();
-        m_setting->setValue(QString("highedge%1").arg(index), entry);
         break;
     case SettingCustomColorKey::Color:
-        m_option.customColor[index] = entry.toInt();
-        m_setting->setValue(QString("color%1").arg(index), entry);
+        m_option.customColor[index] = entry.value<QColor>();
         break;
     }
 
-    m_setting->endGroup();
     DrawLine();
+    WriteSettings();
+}
 
-    qDebug() << static_cast<int>(key);
-    qDebug() << entry;
+void BatteryLine::SettingSlotDefault()
+{
+    m_option = DefaultSettings();
+    DrawLine();
+    WriteSettings();
 }
 
 void BatteryLine::ReadSettings()
 {
-    qDebug() << m_setting->fileName();
-
     // Default Value
-    m_setting->beginGroup("General");
     m_option.height = m_setting->value("height", 5).toUInt();
     m_option.position = m_setting->value("position", static_cast<int>(SettingPosition::Top)).toUInt();
     m_option.transparency = m_setting->value("transparency", 196).toUInt();
     m_option.showCharge = m_setting->value("showcharge", true).toBool();
-    m_option.taskbar = m_setting->value("taskbar", static_cast<int>(SettingTaskBar::Evade)).toUInt();
+    m_option.align = m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toUInt();
     uint monitor = m_setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toUInt();
     if (monitor == static_cast<int>(SettingMonitor::Primary))
     {
@@ -638,7 +576,6 @@ void BatteryLine::ReadSettings()
         m_option.mainMonitor = false;
         m_option.customMonitor = monitor;
     }
-    m_setting->endGroup();
 
     m_setting->beginGroup("BasicColor");
     m_option.defaultColor = SystemHelper::RGB_QStringToQColor(m_setting->value("defaultcolor", SystemHelper::RGB_QColorToQString(QColor(0, 255, 0))).toString());
@@ -647,85 +584,91 @@ void BatteryLine::ReadSettings()
     m_setting->endGroup();
 
     m_setting->beginGroup("CustomColor");
+    m_option.customEnable[0] = m_setting->value("customenable1", true).toBool();
+    m_option.customColor[0] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
     m_option.lowEdge[0] = m_setting->value("lowedge1", 0).toUInt();
     m_option.highEdge[0] = m_setting->value("highedge1", 20).toUInt();
-    m_option.customColor[0] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
+    m_option.customEnable[1] = m_setting->value("customenable2", true).toBool();
+    m_option.customColor[1] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
     m_option.lowEdge[1] = m_setting->value("lowedge2", 20).toUInt();
     m_option.highEdge[1] = m_setting->value("highedge2", 50).toUInt();
-    m_option.customColor[1] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
-    m_option.customColorCount = BL_COLOR_LEVEL;
-    for (uint i = 3; i <= BL_COLOR_LEVEL; i++)
+    for (uint i = 2; i < BL_COLOR_LEVEL; i++)
     {
-        m_option.lowEdge[i-1] = m_setting->value(QString("lowedge%1").arg(i), 0).toUInt();
-        m_option.highEdge[i-1] = m_setting->value(QString("highedge%1").arg(i), 0).toUInt();
-        m_option.customColor[i-1] = SystemHelper::RGB_QStringToQColor(m_setting->value(QString("customcolor%1").arg(i), SystemHelper::RGB_QColorToQString(QColor(0, 0, 0))).toString());
-        if (m_option.lowEdge[i-1] == 0 && m_option.highEdge[i-1] == 0 && m_option.customColor[i-1] == QColor(0, 0, 0)) // No value
+        m_option.customEnable[i] = m_setting->value(QString("customenable%1").arg(i + 1), false).toBool();
+        m_option.customColor[i] = SystemHelper::RGB_QStringToQColor(m_setting->value(QString("customcolor%1").arg(i + 1), SystemHelper::RGB_QColorToQString(BL_DEFAULT_DISABLED_COLOR)).toString());
+        m_option.lowEdge[i] = m_setting->value(QString("lowedge%1").arg(i + 1), 0).toUInt();
+        m_option.highEdge[i] = m_setting->value(QString("highedge%1").arg(i + 1), 0).toUInt();
+    }
+    m_setting->endGroup();
+}
+
+void BatteryLine::WriteSettings()
+{
+    m_setting->setValue("height", m_option.height);
+    m_setting->setValue("position", m_option.position);
+    m_setting->setValue("transparency", m_option.transparency);
+    m_setting->setValue("showcharge", m_option.showCharge);
+    m_setting->setValue("align", m_option.align);
+    if (m_option.mainMonitor == true)
+        m_setting->setValue("monitor", 0);
+    else
+        m_setting->setValue("monitor", m_option.customMonitor);
+
+    m_setting->beginGroup("BasicColor");
+    m_setting->setValue("defaultcolor", SystemHelper::RGB_QColorToQString(m_option.defaultColor));
+    m_setting->setValue("chargecolor", SystemHelper::RGB_QColorToQString(m_option.chargeColor));
+    m_setting->setValue("fullcolor", SystemHelper::RGB_QColorToQString(m_option.fullColor));
+    m_setting->endGroup();
+
+    m_setting->beginGroup("CustomColor");
+    for (uint i = 0; i < BL_COLOR_LEVEL; i++)
+    {
+        // If not initial disabled value, write
+        if (m_option.customEnable[i] || !(m_option.customColor[i] == BL_DEFAULT_DISABLED_COLOR && m_option.lowEdge[i] == 0 && m_option.highEdge[i] == 0))
         {
-            m_option.customColorCount = i-1;
-            break;
+            m_setting->setValue(QString("customenable%1").arg(i+1), m_option.customEnable[i]);
+            m_setting->setValue(QString("customcolor%1").arg(i+1), SystemHelper::RGB_QColorToQString(m_option.customColor[i]));
+            m_setting->setValue(QString("lowedge%1").arg(i+1), m_option.lowEdge[i]);
+            m_setting->setValue(QString("highedge%1").arg(i+1), m_option.highEdge[i]);
         }
     }
     m_setting->endGroup();
 }
 
-void BatteryLine::WriteSettings(bool defaultValue)
+BL_OPTION BatteryLine::DefaultSettings()
 {
-    // Default Value
-    if (defaultValue)
+    BL_OPTION option;
+    memset(static_cast<void*>(&option), 0, sizeof(BL_OPTION));
+
+    option.height = 5;
+    option.position = static_cast<int>(SettingPosition::Top);
+    option.transparency = 196;
+    option.showCharge = true;
+    option.align = static_cast<int>(SettingAlign::LeftTop);
+    option.mainMonitor = true;
+    option.customMonitor = 0;
+
+    option.defaultColor = QColor(0, 255, 0);
+    option.chargeColor = QColor(0, 200, 255);
+    option.fullColor = QColor(0, 162, 232);
+
+    option.customEnable[0] = true;
+    option.customColor[0] = QColor(237, 28, 36);
+    option.lowEdge[0] = 0;
+    option.highEdge[0] = 20;
+    option.customEnable[1] = true;
+    option.customColor[1] = QColor(255, 140, 15);
+    option.lowEdge[1] = 20;
+    option.highEdge[1] = 50;
+    for (uint i = 2; i < BL_COLOR_LEVEL; i++)
     {
-        m_setting->beginGroup("General");
-        m_setting->setValue("height", 5);
-        m_setting->setValue("position", static_cast<int>(SettingPosition::Top));
-        m_setting->setValue("transparency", 196);
-        m_setting->setValue("showcharge", true);
-        m_setting->setValue("taskbar", static_cast<int>(SettingTaskBar::Evade));
-        m_setting->setValue("monitor", static_cast<int>(SettingMonitor::Primary));
-        m_setting->endGroup();
-
-        m_setting->beginGroup("BasicColor");
-        m_setting->setValue("defaultcolor", SystemHelper::RGB_QColorToQString(QColor(0, 255, 0)));
-        m_setting->setValue("chargecolor", SystemHelper::RGB_QColorToQString(QColor(0, 200, 255)));
-        m_setting->setValue("fullcolor", SystemHelper::RGB_QColorToQString(QColor(0, 162, 232)));
-        m_setting->endGroup();
-
-        m_setting->beginGroup("CustomColor");
-        m_setting->setValue("lowedge1", 0);
-        m_setting->setValue("highedge1", 20);
-        m_setting->setValue("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36)));
-        m_setting->setValue("lowedge2", 20);
-        m_setting->setValue("highedge2", 50);
-        m_setting->setValue("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15)));
-        m_setting->endGroup();
+        option.customEnable[i] = false;
+        option.customColor[i] = BL_DEFAULT_DISABLED_COLOR;
+        option.lowEdge[i] = 0;
+        option.highEdge[i] = 0;
     }
-    else
-    {
-        m_setting->beginGroup("General");
-        m_setting->setValue("height", m_option.height);
-        m_setting->setValue("position", m_option.position);
-        m_setting->setValue("transparency", m_option.transparency);
-        m_setting->setValue("showcharge", m_option.showCharge);
-        m_setting->setValue("taskbar", m_option.taskbar);
-        if (m_option.mainMonitor == true)
-            m_setting->setValue("monitor", 0);
-        else
-            m_setting->setValue("monitor", m_option.customMonitor);
-        m_setting->endGroup();
 
-        m_setting->beginGroup("BasicColor");
-        m_setting->setValue("defaultcolor", SystemHelper::RGB_QColorToQString(m_option.defaultColor));
-        m_setting->setValue("chargecolor", SystemHelper::RGB_QColorToQString(m_option.chargeColor));
-        m_setting->setValue("fullcolor", SystemHelper::RGB_QColorToQString(m_option.fullColor));
-        m_setting->endGroup();
-
-        m_setting->beginGroup("CustomColor");
-        for (uint i = 1; i <= m_option.customColorCount; i++)
-        {
-            m_setting->setValue(QString("lowedge%1").arg(i), m_option.lowEdge[i]);
-            m_setting->setValue(QString("highedge%1").arg(i), m_option.highEdge[i]);
-            m_setting->setValue(QString("customcolor%1").arg(i), SystemHelper::RGB_QColorToQString(m_option.customColor[i]));
-        }
-        m_setting->endGroup();
-    }
+    return option;
 }
 
 #ifdef Q_OS_WIN
@@ -742,10 +685,12 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
             qDebug() << "WM_POWERBROADCAST";
             DrawLine();
             break;
+            /*
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
             qDebug() << "WM_DISPLAYCHANGE";
             DrawLine();
             break;
+            */
         default:
             break;
         }
