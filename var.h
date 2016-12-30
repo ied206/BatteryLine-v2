@@ -15,4 +15,6 @@
 
 #define BL_ICON             QObject::tr(":/images/Cycle.png")
 
+#define BL_WINDOW_FLAG
+
 #endif // VAR_H

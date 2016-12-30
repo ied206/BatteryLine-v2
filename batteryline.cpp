@@ -21,13 +21,13 @@ BatteryLine::BatteryLine(QWidget *parent) :
 
     // Layered Window + Always On Top
     // In Cinnamon/XOrg, window which has Qt::X11BypassWindowManagerHint cannot be parent of other window.
-    setWindowFlags(Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 
 #ifdef Q_OS_WIN
     // Give WS_EX_NOACTIVE property
     hWnd = (HWND) this->winId();
     LONG dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-    dwExStyle = dwExStyle | WS_EX_NOACTIVATE;
+    dwExStyle |= WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TOPMOST;
     SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
 #endif
 
@@ -75,7 +75,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
     memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
     ReadSettings();
 
-    // Set Window Size and Position, Color
+    // Set Window Size and Position, Colorr
     DrawLine();
 }
 
@@ -226,6 +226,13 @@ void BatteryLine::SetWindowSizePos()
     qDebug() << QString("BatteryLine Resolution : (%1, %2)").arg(appRect.width()).arg(appRect.height());
     qDebug() << "";
 #endif
+
+#ifdef Q_OS_WIN
+    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    if(this->isActiveWindow() == false) {
+        this->raise();
+    }
+#endif
 }
 
 // Must update m_batStat first
@@ -340,6 +347,8 @@ void BatteryLine::CreateTrayIcon()
 
 void BatteryLine::TrayIconClicked(QSystemTrayIcon::ActivationReason reason)
 {
+    DrawLine();
+
     switch(reason)
     {
     case QSystemTrayIcon::Trigger: // SingleClick
