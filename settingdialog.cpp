@@ -252,8 +252,8 @@ void SettingDialog::done(int ret)
             {
                 QMessageBox msgBox;
                 msgBox.setWindowIcon(QIcon(BL_ICON));
-                msgBox.setText(tr("Custom Color Error"));
-                msgBox.setInformativeText(QString("Threshold %1's LowEdge (%2) cannot be larger than HighEdge (%3).\nThreshold %1 will be disabled.").arg(i + 1).arg(m_option.lowEdge[i]).arg(m_option.highEdge[i]));
+                msgBox.setWindowTitle(tr("Custom Color Error"));
+                msgBox.setText(QString("Threshold %1's LowEdge (%2) cannot be larger than HighEdge (%3).\nThreshold %1 will be disabled.").arg(i + 1).arg(m_option.lowEdge[i]).arg(m_option.highEdge[i]));
                 msgBox.setIcon(QMessageBox::Critical);
                 msgBox.setStandardButtons(QMessageBox::Ok);
                 msgBox.setDefaultButton(QMessageBox::Ok);
@@ -306,8 +306,8 @@ void SettingDialog::done(int ret)
             {
                 QMessageBox msgBox;
                 msgBox.setWindowIcon(QIcon(BL_ICON));
-                msgBox.setText("Custom Color Error!");
-                msgBox.setInformativeText(QString("Threshold overlapped from %1 to %2\nCheck Threshold %3 and %4").arg(overlapStart).arg(overlapEnd).arg(overlapStartIndex).arg(overlapEndIndex));
+                msgBox.setWindowTitle(tr("Custom Color Error"));
+                msgBox.setText(QString("Threshold overlapped from %1 to %2!\nCheck Threshold %3 and %4.").arg(overlapStart).arg(overlapEnd).arg(overlapStartIndex).arg(overlapEndIndex));
                 msgBox.setIcon(QMessageBox::Critical);
                 msgBox.setStandardButtons(QMessageBox::Ok);
                 msgBox.setDefaultButton(QMessageBox::Ok);

@@ -390,8 +390,8 @@ void BatteryLine::TrayMenuPrintBanner()
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
-    msgBox.setText(BL_APP_NAME);
-    msgBox.setInformativeText(msgStr);
+    msgBox.setWindowTitle(BL_APP_NAME);
+    msgBox.setText(msgStr);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
@@ -414,8 +414,8 @@ void BatteryLine::TrayMenuPrintHelp()
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
-    msgBox.setText(BL_APP_NAME);
-    msgBox.setInformativeText(msgStr);
+    msgBox.setWindowTitle(BL_APP_NAME);
+    msgBox.setText(msgStr);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
@@ -476,8 +476,9 @@ void BatteryLine::TrayMenuPowerInfo()
             .arg(m_powerStat->m_BatteryLevel);
 
     QMessageBox msgBox;
-    msgBox.setText(tr("Power Info"));
-    msgBox.setInformativeText(msgFull);
+    msgBox.setWindowIcon(QIcon(BL_ICON));
+    msgBox.setWindowTitle(tr("Power Info"));
+    msgBox.setText(msgFull);
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
