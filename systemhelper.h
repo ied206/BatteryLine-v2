@@ -17,6 +17,12 @@ public:
     static void SystemError(const QString errorMsg);
     static QString RGB_QColorToQString(const QColor color);
     static QColor RGB_QStringToQColor(const QString str);
+
+    static void eventLoopRunning(bool value);
+    static bool setEventLoopRunning();
+
+private:
+    static bool m_eventLoopRunning;
 };
 
 #endif // BASICIO_H

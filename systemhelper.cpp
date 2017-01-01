@@ -2,14 +2,17 @@
 
 #include <QMessageBox>
 #include <QCoreApplication>
+#include <QDebug>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdint>
 
+bool SystemHelper::m_eventLoopRunning = false;
+
 SystemHelper::SystemHelper()
 {
-
+    m_eventLoopRunning = false;
 }
 
 int SystemHelper::WhatBitOS()
@@ -124,14 +127,27 @@ int SystemHelper::CompileDay()
 void SystemHelper::SystemError(const QString errorMsg)
 {
     QMessageBox msgBox;
-    msgBox.setText("BatteryLine Error");
-    msgBox.setInformativeText(errorMsg);
-    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setWindowTitle("BatteryLine Error");
+    msgBox.setText(errorMsg);
+    msgBox.setIcon(QMessageBox::Critical);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
 
-    QCoreApplication::exit(1);
+    if (SystemHelper::m_eventLoopRunning)
+        QCoreApplication::exit(1);
+    else
+        exit(1);
+}
+
+void SystemHelper::eventLoopRunning(bool value)
+{
+    SystemHelper::m_eventLoopRunning = value;
+}
+
+bool SystemHelper::setEventLoopRunning()
+{
+    return SystemHelper::m_eventLoopRunning;
 }
 
 QString SystemHelper::RGB_QColorToQString(const QColor color)
@@ -148,7 +164,9 @@ QColor SystemHelper::RGB_QStringToQColor(const QString str)
 
     QStringList list = str.trimmed().split(",");
     if (list.count() != 3)
+    {
         SystemError("[Setting] Invalid color value, must be form of {R, G, B}");
+    }
 
     for (int i = 0; i < list.count(); i++)
     {

@@ -21,13 +21,16 @@ BatteryLine::BatteryLine(QWidget *parent) :
 
     // Layered Window + Always On Top
     // In Cinnamon/XOrg, window which has Qt::X11BypassWindowManagerHint cannot be parent of other window.
+    setEnabled(false);
+    setFocusPolicy(Qt::NoFocus);
+    setAttribute(Qt::WA_X11DoNotAcceptFocus);
     setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 
 #ifdef Q_OS_WIN
     // Give WS_EX_NOACTIVE property
     hWnd = (HWND) this->winId();
     LONG dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-    dwExStyle |= WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED | WS_EX_TOPMOST;
+    dwExStyle |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
     SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
 #endif
 
@@ -129,6 +132,8 @@ BatteryLine::~BatteryLine()
 void BatteryLine::DrawLine()
 {
     m_powerStat->Update();
+    if (m_powerStat->m_BatteryExist == false)
+        SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
     SetColor();
     SetWindowSizePos();
 }
@@ -692,7 +697,9 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
         switch (msg->message)
         {
         case WM_POWERBROADCAST: // Power source changed, battery level dropped
+#ifdef _DEBUG
             qDebug() << "WM_POWERBROADCAST";
+#endif
             DrawLine();
             break;
             /*

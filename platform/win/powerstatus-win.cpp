@@ -42,7 +42,7 @@ void PowerStatus::Update()
         this->m_ACLineStatus = batStat.ACLineStatus ? true : false;
     }
     else
-        SystemHelper::SystemError(QObject::tr("[Windows] Cannot get power state"));
+        SystemHelper::SystemError(QObject::tr("[Windows] Cannot retrieve power information.\n"));
 
 #ifdef _DEBUG
     qDebug() << "[BatteryStatus]";
