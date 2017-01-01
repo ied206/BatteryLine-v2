@@ -18,36 +18,45 @@ TEMPLATE = app
 # depend on your compiler). Please consult the documentation of the
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
+CONFIG(debug, release|debug):DEFINES += _DEBUG
 
 # You can also make your code fail to compile if you use deprecated APIs.
 # In order to do so, uncomment the following line.
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+CONFIG += c++11
+
 
 SOURCES += main.cpp\
-        batteryline.cpp \
-    batterystatus.cpp \
-    systemhelper.cpp
+     batteryline.cpp \
+    systemhelper.cpp \
+    settingdialog.cpp \
+    singleinstance.cpp
 
-win32: SOURCES += platform/win/powernotify-win.cpp
-linux: SOURCES += platform/linux/powernotify-linux.cpp
+win32: SOURCES += platform/win/powernotify-win.cpp \
+    platform/win/powerstatus-win.cpp
+linux: SOURCES += platform/linux/powernotify-linux.cpp \
+    platform/linux/powerstatus-linux.cpp
 
 HEADERS  += batteryline.h \
-    batterystatus.h \
     var.h \
-    systemhelper.h
+    systemhelper.h \
+    settingdialog.h \
+    singleinstance.h
 
-win32: HEADERS += platform/win/powernotify-win.h
-linux: HEADERS += platform/linux/powernotify-linux.h
+win32: HEADERS += platform/win/powernotify-win.h \
+    platform/win/powerstatus-win.h
+linux: HEADERS += platform/linux/powernotify-linux.h \
+    platform/linux/powerstatus-linux.h
 
-FORMS    += batteryline.ui
+FORMS    += batteryline.ui \
+    settingdialog.ui
 
 RESOURCES += \
     batteryline-qt.qrc
 
 win32 {
-    SOURCES +=
     LIBS += kernel32.lib user32.lib
 # http://doc.qt.io/qt-5/appicon.html
     RC_ICONS = images/Cycle.ico

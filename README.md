@@ -1,44 +1,52 @@
 # BatteryLine
 BatteryLine shows system's battery status as line in screen.
 
-Written in Qt5, for Windows and Linux.
+Written in Qt 5, for Windows and Linux.
 
-BatteryLine 2.0 is still in develop. For production version, please use [BatteryLine-Legacy](https://github.com/ied206/BatteryLine-Legacy).
+## Version
+Latest version is v2.0.
+
+v1.x can be found in [BatteryLine-Legacy](https://github.com/ied206/BatteryLine-Legacy) repository.
+
+# Requirement
+## Library
+Dependency                                  | Version   | When
+------------------------------------------- | ----------|-------
+[Qt](https://www.qt.io/)                    | >= 5.6    | Compile
+
+## Per OS : Windows
+Requirement                                 | Required  | When
+------------------------------------------- | ----------|-----
+Windows                                     | >= Vista  | Runtime
+
+## Per OS : Linux
+Requirement                                 | Required | When
+------------------------------------------- | ---------|------
+[UPower](https://upower.freedesktop.org/)   | >= 0.99  | Runtime
+[D-Bus](https://dbus.freedesktop.org/)      |          | Runtime
+
+
+## Tested Environment
+This program was developed and tested under:
+- Qt Creator 4.2
+- Qt 5.7.1
+
+### Windows
+- Windows 10 v1607
+- Visual Studio 2015
+
+### Linux
+- Linux Mint 18
+- Linux Mint 18.1
+- GCC 5.3
 
 # Usage
-Compile and launch BatteryLine.exe.
+Compile and launch BatteryLine-Qt executable.
 
 Or, you can download precompiled binary from [project homepage](https://ied206.github.io/BatteryLine).
 
 # Compile
-This program is built under this environment:
-- CodeBlocks
-- TDM-GCC-64 (based on MinGW-w64)
-
-You can compile BatteryLine yourself using MinGW-w64.
-
-## Using Code::Blocks
-1. Open BatteryLine-dist.cbp using CodeBlocks
-2. Open 'Projects' tab in Management panel (usually at left of screen)
-3. Right-click project 'BatteryLine' and select 'Build Options'
-4. Choose your favorite compiler, usually 'GNU GCC Compiler', then press OK button
-5. Set Build targer to 'Release', then build project.
-6. Binary will be generated in bin\Release\BatteryLine.exe.
-
-## Using MinGW-w64 and make
-1\. Add MinGW-w64 toolchain to PATH. Make sure `gcc, g++, ar, windres, mingw32-make` can be called in console.  
-2\. Build project with mingw32-make
-```
-Type this in source directory's root:
-> mingw32-make
-```
-3\. 32bit and 64bit binaries are compiled under `bin` folder.
-
-## Microsoft Visual Studio
-This code can be compiled under C99 compliance compiler.  
-If your version of Visual Studio support C99, this code would be compiled without trouble.  
-Any contribution related to add official MSVC support is welcome.
+TODO
 
 # License
 This project is licensed under MIT License.  
-Binary distribution of this project is compiled with TDM-GCC-64, which links [winpthreads](http://mingw-w64.org) statically.  
