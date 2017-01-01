@@ -3,6 +3,7 @@
 #include "systemhelper.h"
 #include "singleinstance.h"
 #include <QApplication>
+#include <QCommandLineParser>
 
 #ifdef Q_OS_LINUX
 #include <QStyle>
@@ -22,11 +23,31 @@ int main(int argc, char *argv[])
         QApplication::setStyle("Fusion");
 #endif
 
+    // Set Program Info
+    QCoreApplication::setOrganizationName(BL_ORG_NAME);
+    QCoreApplication::setOrganizationDomain(BL_ORG_DOMAIN);
+    QCoreApplication::setApplicationName(BL_APP_NAME);
+    QCoreApplication::setApplicationVersion(BL_VER_STING);
+
+    // Parse Command Line Option
+    QCommandLineParser parser;
+    parser.setApplicationDescription("Shows system's battery status as line in screen");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    // A boolean option with multiple names (-f, --force)
+    QCommandLineOption quietOption({ "q", "quiet"}, "Launch this program without notification.");
+    parser.addOption(quietOption);
+    //parser.addOptions({
+    //    {{"q", "quiet"}, "Launch this program without notification."},
+    //});
+    parser.process(app);
+
     // Force single instance at once
     SingleInstance single(BL_LOCKFILE, app);
     (void) single;
 
-    BatteryLine line;
+    // Line as Window
+    BatteryLine line(parser.isSet(quietOption));
     line.show();
 
     SystemHelper::eventLoopRunning(true);

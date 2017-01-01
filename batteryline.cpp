@@ -13,7 +13,7 @@
 #include <QUrl>
 
 
-BatteryLine::BatteryLine(QWidget *parent) :
+BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::BatteryLine)
 {
@@ -34,24 +34,19 @@ BatteryLine::BatteryLine(QWidget *parent) :
     SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
 #endif
 
-    // Program Info
-    QCoreApplication::setOrganizationName(BL_ORG_NAME);
-    QCoreApplication::setOrganizationDomain(BL_ORG_DOMAIN);
-    QCoreApplication::setApplicationName(BL_APP_NAME);
-
     // Init Member Classes
-    m_powerStat = new PowerStatus();
+    powerStat = new PowerStatus();
 #ifdef Q_OS_WIN
     m_powerNotify = new PowerNotify(hWnd);
 #endif
 #ifdef Q_OS_LINUX
-    m_powerNotify = new PowerNotify();
+    powerNotify = new PowerNotify();
 #endif
     // Connect Signal with m_powerNotify
-    connect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
+    connect(powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
 
     // Init Member Variables - Setting and Context Menu
-    m_setting = nullptr;
+    setting = nullptr;
 
     trayIconMenu = nullptr;
     trayIcon = nullptr;
@@ -74,9 +69,15 @@ BatteryLine::BatteryLine(QWidget *parent) :
     CreateTrayIcon();
 
     // Load Settings from INI
-    m_setting = new QSettings(QSettings::IniFormat, QSettings::UserScope, BL_ORG_NAME, BL_APP_NAME);
-    memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
+    setting = new QSettings(QSettings::IniFormat, QSettings::UserScope, BL_ORG_NAME, BL_APP_NAME);
+    memset(static_cast<void*>(&option), 0, sizeof(BL_OPTION));
     ReadSettings();
+
+    this->muteNotifcation = quiet;
+    if (quiet == false)
+    {
+        // Popup
+    }
 
     // Set Window Size and Position, Colorr
     DrawLine();
@@ -91,14 +92,14 @@ BatteryLine::~BatteryLine()
     disconnect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
 
     // Disconnect Signal with m_powerNotify
-    disconnect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
+    disconnect(powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
 
     delete ui;
-    delete m_powerStat;
+    delete powerStat;
 
-    delete m_powerNotify;
+    delete powerNotify;
 
-    delete m_setting;
+    delete setting;
 
     delete trayIconMenu;
     delete trayIcon;
@@ -112,10 +113,10 @@ BatteryLine::~BatteryLine()
     delete exitAct;
 
     ui = nullptr;
-    m_powerStat = nullptr;
-    m_powerNotify = nullptr;
+    powerStat = nullptr;
+    powerNotify = nullptr;
 
-    m_setting = nullptr;
+    setting = nullptr;
 
     trayIconMenu = nullptr;
     trayIcon = nullptr;
@@ -131,9 +132,19 @@ BatteryLine::~BatteryLine()
 
 void BatteryLine::DrawLine()
 {
-    m_powerStat->Update();
-    if (m_powerStat->m_BatteryExist == false)
-        SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
+    powerStat->Update();
+    if (powerStat->BatteryExist == false)
+    {
+        if (muteNotifcation)
+        {
+            if (SystemHelper::setEventLoopRunning())
+                exit(1);
+            else
+                QCoreApplication::exit(1);
+        }
+        else
+            SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
+    }
     SetColor();
     SetWindowSizePos();
 }
@@ -146,10 +157,10 @@ void BatteryLine::SetWindowSizePos()
     QRect appRect;
     int targetScreen = 0;
 
-    if (m_option.mainMonitor == true) // Main Monitor
+    if (option.mainMonitor == true) // Main Monitor
         targetScreen = -1;
     else // Custom Monitor
-        targetScreen = m_option.customMonitor;
+        targetScreen = option.customMonitor;
 
     screenWorkRect = QApplication::desktop()->availableGeometry(targetScreen);
     screenFullRect = QApplication::desktop()->screenGeometry(targetScreen);
@@ -159,58 +170,58 @@ void BatteryLine::SetWindowSizePos()
     int appWidth = 0;
     int appHeight = 0;
 
-    switch (m_option.position)
+    switch (option.position)
     {
     case static_cast<int>(SettingPosition::Top):
-        if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
+        if (powerStat->BatteryFull) // Not Charging, because battery is full
             appWidth = screenWorkRect.width();
         else
-            appWidth = (screenWorkRect.width() * m_powerStat->m_BatteryLevel) / 100;
-        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appWidth = (screenWorkRect.width() * powerStat->BatteryLevel) / 100;
+        if (option.align == static_cast<int>(SettingAlign::LeftTop))
             appLeft = screenWorkRect.left();
         else // static_cast<int>(SettingAlign::RightBottom)
             appLeft = screenWorkRect.left() + screenWorkRect.width() - appWidth;
         appTop = screenWorkRect.top();
-        appHeight = m_option.height;
+        appHeight = option.height;
         break;
 
     case static_cast<int>(SettingPosition::Bottom):
-        if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
+        if (powerStat->BatteryFull) // Not Charging, because battery is full
             appWidth = screenWorkRect.width();
         else
-            appWidth = (screenWorkRect.width() * m_powerStat->m_BatteryLevel) / 100;
-        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appWidth = (screenWorkRect.width() * powerStat->BatteryLevel) / 100;
+        if (option.align == static_cast<int>(SettingAlign::LeftTop))
             appLeft = screenWorkRect.left();
         else // static_cast<int>(SettingAlign::RightBottom)
             appLeft = screenWorkRect.left() + screenWorkRect.width() - appWidth;
-        appTop = screenWorkRect.top() + screenWorkRect.height() - m_option.height;
-        appHeight = m_option.height;
+        appTop = screenWorkRect.top() + screenWorkRect.height() - option.height;
+        appHeight = option.height;
         break;
 
     case static_cast<int>(SettingPosition::Left):
-        if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
+        if (powerStat->BatteryFull) // Not Charging, because battery is full
             appHeight = screenWorkRect.height();
         else
-            appHeight = (screenWorkRect.height() * m_powerStat->m_BatteryLevel) / 100;
-        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appHeight = (screenWorkRect.height() * powerStat->BatteryLevel) / 100;
+        if (option.align == static_cast<int>(SettingAlign::LeftTop))
             appTop = screenWorkRect.top();
         else // static_cast<int>(SettingAlign::RightBottom)
             appTop = screenWorkRect.top() + screenWorkRect.height() - appHeight;
         appLeft = screenWorkRect.left();
-        appWidth = m_option.height;
+        appWidth = option.height;
         break;
 
     case static_cast<int>(SettingPosition::Right):
-        if (m_powerStat->m_BatteryFull) // Not Charging, because battery is full
+        if (powerStat->BatteryFull) // Not Charging, because battery is full
             appHeight = screenWorkRect.height();
         else
-            appHeight = (screenWorkRect.height() * m_powerStat->m_BatteryLevel) / 100;
-        if (m_option.align == static_cast<int>(SettingAlign::LeftTop))
+            appHeight = (screenWorkRect.height() * powerStat->BatteryLevel) / 100;
+        if (option.align == static_cast<int>(SettingAlign::LeftTop))
             appTop = screenWorkRect.top();
         else // static_cast<int>(SettingAlign::RightBottom)
             appTop = screenWorkRect.top() + screenWorkRect.height() - appHeight;
-        appLeft = screenWorkRect.left() + screenWorkRect.width() - m_option.height;
-        appWidth = m_option.height;
+        appLeft = screenWorkRect.left() + screenWorkRect.width() - option.height;
+        appWidth = option.height;
         break;
     }
 
@@ -245,22 +256,22 @@ void BatteryLine::SetColor()
 {
     QPalette palette;
     QColor color;
-    setWindowOpacity(static_cast<qreal>(m_option.transparency) / 255);
+    setWindowOpacity(static_cast<qreal>(option.transparency) / 255);
 
-    if (m_option.showCharge == true && m_powerStat->m_BatteryCharging == true)  // Charging, and show charge color option set
-        color = m_option.chargeColor;
-    else if (m_powerStat->m_BatteryFull == true) // Not Charging, because battery is full
-        color = m_option.fullColor; // Even though BatteryLifePercent is not 100, consider it as 100
-    else if (m_option.showCharge == false || m_powerStat->m_ACLineStatus == false) // Not Charging, running on battery
+    if (option.showCharge == true && powerStat->BatteryCharging == true)  // Charging, and show charge color option set
+        color = option.chargeColor;
+    else if (powerStat->BatteryFull == true) // Not Charging, because battery is full
+        color = option.fullColor; // Even though BatteryLifePercent is not 100, consider it as 100
+    else if (option.showCharge == false || powerStat->ACLineStatus == false) // Not Charging, running on battery
     {
-        color = m_option.defaultColor;
+        color = option.defaultColor;
         for (int i = 0; i < BL_COLOR_LEVEL; i++)
         {
-            if (m_option.customEnable[i])
+            if (option.customEnable[i])
             {
-                if (m_option.lowEdge[i] < m_powerStat->m_BatteryLevel && m_powerStat->m_BatteryLevel <= m_option.highEdge[i])
+                if (option.lowEdge[i] < powerStat->BatteryLevel && powerStat->BatteryLevel <= option.highEdge[i])
                 {
-                    color = m_option.customColor[i];
+                    color = option.customColor[i];
                     break;
                 }
             }
@@ -442,7 +453,7 @@ void BatteryLine::TrayMenuLicense()
 void BatteryLine::TrayMenuSetting()
 {
     // SettingDialog dialog(m_option, this);
-    SettingDialog dialog(m_option, DefaultSettings(), 0);
+    SettingDialog dialog(option, DefaultSettings(), 0);
     connect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingSlotGeneral(SettingGeneralKey, QVariant)));
     connect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingSlotBasicColor(SettingBasicColorKey,QVariant)));
     connect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingSlotCustomColor(SettingCustomColorKey, int, QVariant)));
@@ -456,19 +467,18 @@ void BatteryLine::TrayMenuSetting()
 
 void BatteryLine::TrayMenuPowerInfo()
 {
-    m_powerStat->Update();
-
+    powerStat->Update();
     QString msgAcPower, msgCharge, msgFull;
-    if (m_powerStat->m_ACLineStatus == true)
+    if (powerStat->ACLineStatus == true)
         msgAcPower = tr("AC");
     else
         msgAcPower = tr("Battery");
 
-    if (m_powerStat->m_BatteryFull == true)
+    if (powerStat->BatteryFull == true)
         msgCharge = tr("Full");
-    else if (m_powerStat->m_BatteryCharging == true)
+    else if (powerStat->BatteryCharging == true)
         msgCharge = tr("Charging");
-    else if (m_powerStat->m_ACLineStatus == false)
+    else if (powerStat->ACLineStatus == false)
         msgCharge = tr("Using Battery");
     else
         SystemHelper::SystemError("[General] Invalid battery status data");
@@ -478,7 +488,7 @@ void BatteryLine::TrayMenuPowerInfo()
                      "Battery Percent : %3%\n")
             .arg(msgAcPower)
             .arg(msgCharge)
-            .arg(m_powerStat->m_BatteryLevel);
+            .arg(powerStat->BatteryLevel);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -495,28 +505,28 @@ void BatteryLine::SettingSlotGeneral(SettingGeneralKey key, QVariant entry)
     switch (key)
     {
     case SettingGeneralKey::Height:
-        m_option.height = entry.toUInt();
+        option.height = entry.toUInt();
         break;
     case SettingGeneralKey::Position:
-        m_option.position = entry.toUInt();
+        option.position = entry.toUInt();
         break;
     case SettingGeneralKey::Transparency:
-        m_option.transparency = entry.toUInt();
+        option.transparency = entry.toUInt();
         break;
     case SettingGeneralKey::ShowCharge:
-        m_option.showCharge = entry.toBool();
+        option.showCharge = entry.toBool();
         break;
     case SettingGeneralKey::Align:
-        m_option.align = entry.toUInt();
+        option.align = entry.toUInt();
         break;
     case SettingGeneralKey::MainMonitor:
         if (entry.toBool())
-            m_option.mainMonitor = true;
+            option.mainMonitor = true;
         else
-            m_option.mainMonitor = false;
+            option.mainMonitor = false;
         break;
     case SettingGeneralKey::CustomMonitor:
-        m_option.customMonitor = entry.toUInt();
+        option.customMonitor = entry.toUInt();
         break;
     }
 
@@ -529,13 +539,13 @@ void BatteryLine::SettingSlotBasicColor(SettingBasicColorKey key, QVariant entry
     switch (key)
     {
     case SettingBasicColorKey::DefaultColor:
-        m_option.defaultColor = entry.value<QColor>();
+        option.defaultColor = entry.value<QColor>();
         break;
     case SettingBasicColorKey::ChargeColor:
-        m_option.chargeColor = entry.value<QColor>();
+        option.chargeColor = entry.value<QColor>();
         break;
     case SettingBasicColorKey::FullColor:
-        m_option.fullColor = entry.value<QColor>();
+        option.fullColor = entry.value<QColor>();
         break;
     }
 
@@ -548,16 +558,16 @@ void BatteryLine::SettingSlotCustomColor(SettingCustomColorKey key, int index, Q
     switch (key)
     {
     case SettingCustomColorKey::Enable:
-        m_option.customEnable[index] = entry.toBool();
+        option.customEnable[index] = entry.toBool();
         break;
     case SettingCustomColorKey::LowEdge:
-        m_option.lowEdge[index] = entry.toInt();
+        option.lowEdge[index] = entry.toInt();
         break;
     case SettingCustomColorKey::HighEdge:
-        m_option.highEdge[index] = entry.toInt();
+        option.highEdge[index] = entry.toInt();
         break;
     case SettingCustomColorKey::Color:
-        m_option.customColor[index] = entry.value<QColor>();
+        option.customColor[index] = entry.value<QColor>();
         break;
     }
 
@@ -567,7 +577,7 @@ void BatteryLine::SettingSlotCustomColor(SettingCustomColorKey key, int index, Q
 
 void BatteryLine::SettingSlotDefault()
 {
-    m_option = DefaultSettings();
+    option = DefaultSettings();
     DrawLine();
     WriteSettings();
 }
@@ -575,79 +585,79 @@ void BatteryLine::SettingSlotDefault()
 void BatteryLine::ReadSettings()
 {
     // Default Value
-    m_option.height = m_setting->value("height", 5).toUInt();
-    m_option.position = m_setting->value("position", static_cast<int>(SettingPosition::Top)).toUInt();
-    m_option.transparency = m_setting->value("transparency", 196).toUInt();
-    m_option.showCharge = m_setting->value("showcharge", true).toBool();
-    m_option.align = m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toUInt();
-    uint monitor = m_setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toUInt();
+    option.height = setting->value("height", 5).toUInt();
+    option.position = setting->value("position", static_cast<int>(SettingPosition::Top)).toUInt();
+    option.transparency = setting->value("transparency", 196).toUInt();
+    option.showCharge = setting->value("showcharge", true).toBool();
+    option.align = setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toUInt();
+    uint monitor = setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toUInt();
     if (monitor == static_cast<int>(SettingMonitor::Primary))
     {
-        m_option.mainMonitor = true;
-        m_option.customMonitor = 0;
+        option.mainMonitor = true;
+        option.customMonitor = 0;
     }
     else
     {
-        m_option.mainMonitor = false;
-        m_option.customMonitor = monitor;
+        option.mainMonitor = false;
+        option.customMonitor = monitor;
     }
 
-    m_setting->beginGroup("BasicColor");
-    m_option.defaultColor = SystemHelper::RGB_QStringToQColor(m_setting->value("defaultcolor", SystemHelper::RGB_QColorToQString(QColor(0, 255, 0))).toString());
-    m_option.chargeColor = SystemHelper::RGB_QStringToQColor(m_setting->value("chargecolor", SystemHelper::RGB_QColorToQString(QColor(0, 200, 255))).toString());
-    m_option.fullColor = SystemHelper::RGB_QStringToQColor(m_setting->value("fullcolor", SystemHelper::RGB_QColorToQString(QColor(0, 162, 232))).toString());
-    m_setting->endGroup();
+    setting->beginGroup("BasicColor");
+    option.defaultColor = SystemHelper::RGB_QStringToQColor(setting->value("defaultcolor", SystemHelper::RGB_QColorToQString(QColor(0, 255, 0))).toString());
+    option.chargeColor = SystemHelper::RGB_QStringToQColor(setting->value("chargecolor", SystemHelper::RGB_QColorToQString(QColor(0, 200, 255))).toString());
+    option.fullColor = SystemHelper::RGB_QStringToQColor(setting->value("fullcolor", SystemHelper::RGB_QColorToQString(QColor(0, 162, 232))).toString());
+    setting->endGroup();
 
-    m_setting->beginGroup("CustomColor");
-    m_option.customEnable[0] = m_setting->value("customenable1", true).toBool();
-    m_option.customColor[0] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
-    m_option.lowEdge[0] = m_setting->value("lowedge1", 0).toUInt();
-    m_option.highEdge[0] = m_setting->value("highedge1", 20).toUInt();
-    m_option.customEnable[1] = m_setting->value("customenable2", true).toBool();
-    m_option.customColor[1] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
-    m_option.lowEdge[1] = m_setting->value("lowedge2", 20).toUInt();
-    m_option.highEdge[1] = m_setting->value("highedge2", 50).toUInt();
+    setting->beginGroup("CustomColor");
+    option.customEnable[0] = setting->value("customenable1", true).toBool();
+    option.customColor[0] = SystemHelper::RGB_QStringToQColor(setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
+    option.lowEdge[0] = setting->value("lowedge1", 0).toUInt();
+    option.highEdge[0] = setting->value("highedge1", 20).toUInt();
+    option.customEnable[1] = setting->value("customenable2", true).toBool();
+    option.customColor[1] = SystemHelper::RGB_QStringToQColor(setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
+    option.lowEdge[1] = setting->value("lowedge2", 20).toUInt();
+    option.highEdge[1] = setting->value("highedge2", 50).toUInt();
     for (uint i = 2; i < BL_COLOR_LEVEL; i++)
     {
-        m_option.customEnable[i] = m_setting->value(QString("customenable%1").arg(i + 1), false).toBool();
-        m_option.customColor[i] = SystemHelper::RGB_QStringToQColor(m_setting->value(QString("customcolor%1").arg(i + 1), SystemHelper::RGB_QColorToQString(BL_DEFAULT_DISABLED_COLOR)).toString());
-        m_option.lowEdge[i] = m_setting->value(QString("lowedge%1").arg(i + 1), 0).toUInt();
-        m_option.highEdge[i] = m_setting->value(QString("highedge%1").arg(i + 1), 0).toUInt();
+        option.customEnable[i] = setting->value(QString("customenable%1").arg(i + 1), false).toBool();
+        option.customColor[i] = SystemHelper::RGB_QStringToQColor(setting->value(QString("customcolor%1").arg(i + 1), SystemHelper::RGB_QColorToQString(BL_DEFAULT_DISABLED_COLOR)).toString());
+        option.lowEdge[i] = setting->value(QString("lowedge%1").arg(i + 1), 0).toUInt();
+        option.highEdge[i] = setting->value(QString("highedge%1").arg(i + 1), 0).toUInt();
     }
-    m_setting->endGroup();
+    setting->endGroup();
 }
 
 void BatteryLine::WriteSettings()
 {
-    m_setting->setValue("height", m_option.height);
-    m_setting->setValue("position", m_option.position);
-    m_setting->setValue("transparency", m_option.transparency);
-    m_setting->setValue("showcharge", m_option.showCharge);
-    m_setting->setValue("align", m_option.align);
-    if (m_option.mainMonitor == true)
-        m_setting->setValue("monitor", 0);
+    setting->setValue("height", option.height);
+    setting->setValue("position", option.position);
+    setting->setValue("transparency", option.transparency);
+    setting->setValue("showcharge", option.showCharge);
+    setting->setValue("align", option.align);
+    if (option.mainMonitor == true)
+        setting->setValue("monitor", 0);
     else
-        m_setting->setValue("monitor", m_option.customMonitor);
+        setting->setValue("monitor", option.customMonitor);
 
-    m_setting->beginGroup("BasicColor");
-    m_setting->setValue("defaultcolor", SystemHelper::RGB_QColorToQString(m_option.defaultColor));
-    m_setting->setValue("chargecolor", SystemHelper::RGB_QColorToQString(m_option.chargeColor));
-    m_setting->setValue("fullcolor", SystemHelper::RGB_QColorToQString(m_option.fullColor));
-    m_setting->endGroup();
+    setting->beginGroup("BasicColor");
+    setting->setValue("defaultcolor", SystemHelper::RGB_QColorToQString(option.defaultColor));
+    setting->setValue("chargecolor", SystemHelper::RGB_QColorToQString(option.chargeColor));
+    setting->setValue("fullcolor", SystemHelper::RGB_QColorToQString(option.fullColor));
+    setting->endGroup();
 
-    m_setting->beginGroup("CustomColor");
+    setting->beginGroup("CustomColor");
     for (uint i = 0; i < BL_COLOR_LEVEL; i++)
     {
         // If not initial disabled value, write
-        if (m_option.customEnable[i] || !(m_option.customColor[i] == BL_DEFAULT_DISABLED_COLOR && m_option.lowEdge[i] == 0 && m_option.highEdge[i] == 0))
+        if (option.customEnable[i] || !(option.customColor[i] == BL_DEFAULT_DISABLED_COLOR && option.lowEdge[i] == 0 && option.highEdge[i] == 0))
         {
-            m_setting->setValue(QString("customenable%1").arg(i+1), m_option.customEnable[i]);
-            m_setting->setValue(QString("customcolor%1").arg(i+1), SystemHelper::RGB_QColorToQString(m_option.customColor[i]));
-            m_setting->setValue(QString("lowedge%1").arg(i+1), m_option.lowEdge[i]);
-            m_setting->setValue(QString("highedge%1").arg(i+1), m_option.highEdge[i]);
+            setting->setValue(QString("customenable%1").arg(i+1), option.customEnable[i]);
+            setting->setValue(QString("customcolor%1").arg(i+1), SystemHelper::RGB_QColorToQString(option.customColor[i]));
+            setting->setValue(QString("lowedge%1").arg(i+1), option.lowEdge[i]);
+            setting->setValue(QString("highedge%1").arg(i+1), option.highEdge[i]);
         }
     }
-    m_setting->endGroup();
+    setting->endGroup();
 }
 
 BL_OPTION BatteryLine::DefaultSettings()

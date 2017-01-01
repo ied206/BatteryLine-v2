@@ -39,28 +39,28 @@ void PowerStatus::Update()
     QVariant batteryState = dBusDisplayDevice->property("State");      // uint
     QVariant acLineStatus = dBusLinePowerAC->property("Online");       // bool
 
-    this->m_BatteryExist = batteryExist.toBool();
-    this->m_BatteryLevel = batteryLevel.toInt();
-    this->m_ACLineStatus = acLineStatus.toBool();
+    this->BatteryExist = batteryExist.toBool();
+    this->BatteryLevel = batteryLevel.toInt();
+    this->ACLineStatus = acLineStatus.toBool();
     switch (batteryState.toInt())
     {
     case 1: // Charging
     case 5: // Pending charge
-        this->m_BatteryCharging = true;
-        this->m_BatteryFull = false;
+        this->BatteryCharging = true;
+        this->BatteryFull = false;
         break;
     case 2: // Discharging
     case 3: // Empty
     case 6: // Pending discharge
-        this->m_BatteryCharging = false;
-        if (this->m_ACLineStatus == true)
-            this->m_BatteryFull = true;
+        this->BatteryCharging = false;
+        if (this->ACLineStatus == true)
+            this->BatteryFull = true;
         else
-            this->m_BatteryFull = false;
+            this->BatteryFull = false;
         break;
     case 4: // Fully charged
-        this->m_BatteryCharging = false;
-        this->m_BatteryFull = true;
+        this->BatteryCharging = false;
+        this->BatteryFull = true;
         break;
     case 0: // Unknown
     default:
