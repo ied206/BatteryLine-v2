@@ -187,3 +187,5 @@ QColor SystemHelper::RGB_QStringToQColor(const QString str)
 
     return color;
 }
+
+

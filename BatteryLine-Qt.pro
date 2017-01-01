@@ -31,7 +31,8 @@ CONFIG += c++11
 SOURCES += main.cpp\
      batteryline.cpp \
     systemhelper.cpp \
-    settingdialog.cpp
+    settingdialog.cpp \
+    singleinstance.cpp
 
 win32: SOURCES += platform/win/powernotify-win.cpp \
     platform/win/powerstatus-win.cpp
@@ -41,7 +42,8 @@ linux: SOURCES += platform/linux/powernotify-linux.cpp \
 HEADERS  += batteryline.h \
     var.h \
     systemhelper.h \
-    settingdialog.h
+    settingdialog.h \
+    singleinstance.h
 
 win32: HEADERS += platform/win/powernotify-win.h \
     platform/win/powerstatus-win.h

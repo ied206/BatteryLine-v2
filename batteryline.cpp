@@ -716,3 +716,4 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
     return QWidget::nativeEvent(eventType, message, result);
 }
 #endif
+
