@@ -22,6 +22,7 @@ Windows                                     | >= Vista  | Runtime
 ## Per OS : Linux
 Requirement                                 | Required | When
 ------------------------------------------- | ---------|------
+[Snorenotify](https://github.com/KDE/snorenotify) |  | Compile
 [UPower](https://upower.freedesktop.org/)   | >= 0.99  | Runtime
 [D-Bus](https://dbus.freedesktop.org/)      |          | Runtime
 

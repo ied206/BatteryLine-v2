@@ -29,18 +29,20 @@ BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
 #ifdef Q_OS_WIN
     // Give WS_EX_NOACTIVE property
     hWnd = (HWND) this->winId();
-    LONG dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
+    LONG dwExStyle = GetWindowLongW(hWnd, GWL_EXSTYLE);
     dwExStyle |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
-    SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
+    SetWindowLongW(hWnd, GWL_EXSTYLE, dwExStyle);
 #endif
 
     // Init Member Classes
     powerStat = new PowerStatus();
 #ifdef Q_OS_WIN
-    m_powerNotify = new PowerNotify(hWnd);
+    powerNotify = new PowerNotify(hWnd);
+    notification = new Notification(hWnd);
 #endif
 #ifdef Q_OS_LINUX
     powerNotify = new PowerNotify();
+    notification = new Notification();
 #endif
     // Connect Signal with m_powerNotify
     connect(powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
@@ -73,13 +75,10 @@ BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
     memset(static_cast<void*>(&option), 0, sizeof(BL_OPTION));
     ReadSettings();
 
-    this->muteNotifcation = quiet;
-    if (quiet == false)
-    {
-        // Popup
-    }
+    // Notification
+    muteNotifcation = quiet;
 
-    // Set Window Size and Position, Colorr
+    // Set Window Size and Position, Color
     DrawLine();
 }
 
@@ -96,8 +95,10 @@ BatteryLine::~BatteryLine()
 
     delete ui;
     delete powerStat;
-
     delete powerNotify;
+#ifdef _NOTIFICATION
+    delete notification;
+#endif
 
     delete setting;
 
@@ -235,7 +236,7 @@ void BatteryLine::SetWindowSizePos()
 
 #ifdef _DEBUG
     qDebug() << QString("[Monitor]");
-    qDebug() << QString("Displaying on monitor %1").arg(m_option.customMonitor);
+    qDebug() << QString("Displaying on monitor %1").arg(option.customMonitor);
     qDebug() << QString("Base Coordinate        : (%1, %2)").arg(screenFullRect.left()).arg(screenFullRect.top());
     qDebug() << QString("Screen Resolution      : (%1, %2)").arg(screenFullRect.width()).arg(screenFullRect.height());
     qDebug() << QString("BatteryLine Coordinate : (%1, %2)").arg(appRect.left()).arg(appRect.top());
@@ -394,15 +395,13 @@ void BatteryLine::TrayMenuPrintBanner()
                   "Show battery status as line in screen.\n\n"
                   "[Binary] %4\n"
                   "[Source] %5\n\n"
-                  "Build %6%7%8")
+                  "Build %6")
             .arg(BL_MAJOR_VER)
             .arg(BL_MINOR_VER)
             .arg(SystemHelper::WhatBitOS())
             .arg(webBinary)
             .arg(webSource)
-            .arg(SystemHelper::CompileYear())
-            .arg(SystemHelper::CompileMonth())
-            .arg(SystemHelper::CompileDay());
+            .arg(BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -726,4 +725,5 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
     return QWidget::nativeEvent(eventType, message, result);
 }
 #endif
+
 

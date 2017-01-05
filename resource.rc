@@ -1,0 +1,36 @@
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include <windows.h>
+#include <commctrl.h>
+#include <richedit.h>
+#include "resource.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     RES_FILEVERSION
+PRODUCTVERSION  RES_PRODUCTVERSION
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "040904b0"
+        {
+            VALUE "CompanyName",        RES_COMPANYNAME_STR
+            VALUE "FileDescription",    RES_FILEDESCRIPTION_STR
+            VALUE "FileVersion",        RES_FILEVERSION_STR
+            VALUE "InternalName",       RES_INTERNALNAME_STR
+            VALUE "LegalCopyright",     RES_LEGALCOPYRIGHT_STR
+            VALUE "LegalTrademarks1",   RES_LEGALTRADEMARKS1_STR
+            VALUE "LegalTrademarks2",   RES_LEGALTRADEMARKS2_STR
+            VALUE "OriginalFilename",   RES_ORIGINALFILENAME_STR
+            VALUE "ProductName",        RES_PRODUCTNAME_STR
+            VALUE "ProductVersion",     RES_PRODUCTVERSION_STR
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x409, 1200
+    }
+}
+
+IDI_MAINICON            ICON                   ".\\images\\Cycle.ico"
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST ".\\batteryLine.manifest"

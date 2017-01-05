@@ -14,10 +14,12 @@
 #include "settingdialog.h"
 
 #ifdef Q_OS_WIN
+#include "platform/win/notification-win.h"
 #include "platform/win/powernotify-win.h"
 #include "platform/win/powerstatus-win.h"
 #endif
 #ifdef Q_OS_LINUX
+#include "platform/linux/notification-linux.h"
 #include "platform/linux/powernotify-linux.h"
 #include "platform/linux/powerstatus-linux.h"
 #endif
@@ -70,6 +72,7 @@ private:
     void WriteSettings();
     BL_OPTION DefaultSettings();
 
+    Notification* notification;
     PowerNotify* powerNotify;
     PowerStatus* powerStat;
 

@@ -1,8 +1,11 @@
+#include "var.h"
 #include "systemhelper.h"
 
 #include <QMessageBox>
 #include <QCoreApplication>
+#include <QIcon>
 #include <QDebug>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -128,6 +131,7 @@ void SystemHelper::SystemError(const QString errorMsg)
 {
     QMessageBox msgBox;
     msgBox.setWindowTitle("BatteryLine Error");
+    msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setText(errorMsg);
     msgBox.setIcon(QMessageBox::Critical);
     msgBox.setStandardButtons(QMessageBox::Ok);

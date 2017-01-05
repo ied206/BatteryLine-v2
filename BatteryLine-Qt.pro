@@ -32,33 +32,41 @@ SOURCES += main.cpp\
      batteryline.cpp \
     systemhelper.cpp \
     settingdialog.cpp \
-    singleinstance.cpp
+    singleinstance.cpp \
 
-win32: SOURCES += platform/win/powernotify-win.cpp \
-    platform/win/powerstatus-win.cpp
-linux: SOURCES += platform/linux/powernotify-linux.cpp \
-    platform/linux/powerstatus-linux.cpp
+win32: SOURCES += \
+    platform/win/powernotify-win.cpp \
+    platform/win/powerstatus-win.cpp \
+    platform/win/notification-win.cpp
+linux: SOURCES += \
+    platform/linux/powernotify-linux.cpp \
+    platform/linux/powerstatus-linux.cpp \
+    platform/linux/notification-linux.cpp
 
 HEADERS  += batteryline.h \
     var.h \
     systemhelper.h \
     settingdialog.h \
-    singleinstance.h
+    singleinstance.h \
+    resource.h \
 
-win32: HEADERS += platform/win/powernotify-win.h \
-    platform/win/powerstatus-win.h
-linux: HEADERS += platform/linux/powernotify-linux.h \
-    platform/linux/powerstatus-linux.h
+win32: HEADERS += \
+    platform/win/powernotify-win.h \
+    platform/win/powerstatus-win.h \
+    platform/win/notification-win.h
+linux: HEADERS += \
+    platform/linux/powernotify-linux.h \
+    platform/linux/powerstatus-linux.h \
+    platform/linux/notification-linux.h
 
 FORMS    += batteryline.ui \
     settingdialog.ui
 
-RESOURCES += \
-    batteryline-qt.qrc
+RESOURCES += batteryline-qt.qrc
+
+# http://doc.qt.io/qt-5/appicon.html
+RC_FILE = resource.rc
 
 win32 {
-    LIBS += kernel32.lib user32.lib
-# http://doc.qt.io/qt-5/appicon.html
-    RC_ICONS = images/Cycle.ico
+    LIBS += kernel32.lib user32.lib comctl32.lib shell32.lib
 }
-

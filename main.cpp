@@ -37,9 +37,6 @@ int main(int argc, char *argv[])
     // A boolean option with multiple names (-f, --force)
     QCommandLineOption quietOption({ "q", "quiet"}, "Launch this program without notification.");
     parser.addOption(quietOption);
-    //parser.addOptions({
-    //    {{"q", "quiet"}, "Launch this program without notification."},
-    //});
     parser.process(app);
 
     // Force single instance at once
