@@ -37,8 +37,8 @@ BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
     // Init Member Classes
     m_powerStat = new PowerStatus();
 #ifdef Q_OS_WIN
-    powerNotify = new PowerNotify(m_hWnd);
-    notification = new Notification(m_hWnd);
+    m_powerNotify = new PowerNotify(m_hWnd);
+    m_notification = new Notification(m_hWnd);
 #endif
 #ifdef Q_OS_LINUX
     m_powerNotify = new PowerNotify();
@@ -97,9 +97,7 @@ BatteryLine::~BatteryLine()
     delete ui;
     delete m_powerStat;
     delete m_powerNotify;
-#ifdef _NOTIFICATION
-    delete notification;
-#endif
+    delete m_notification;
 
     delete m_setting;
 
@@ -135,7 +133,6 @@ BatteryLine::~BatteryLine()
 void BatteryLine::DrawLine()
 {
     m_powerStat->Update();
-    /*
     if (m_powerStat->BatteryExist == false)
     {
         if (m_muteNotifcation)
@@ -148,7 +145,6 @@ void BatteryLine::DrawLine()
         else
             SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
     }
-    */
     SetColor();
     SetWindowSizePos();
 }
@@ -248,10 +244,7 @@ void BatteryLine::SetWindowSizePos()
 #endif
 
 #ifdef Q_OS_WIN
-    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    if(this->isActiveWindow() == false) {
-        this->raise();
-    }
+    SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #endif
 }
 
@@ -720,12 +713,12 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
 #endif
             DrawLine();
             break;
-            /*
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
+#ifdef _DEBUG
             qDebug() << "WM_DISPLAYCHANGE";
+#endif
             DrawLine();
             break;
-            */
         default:
             break;
         }
