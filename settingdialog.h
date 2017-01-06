@@ -82,7 +82,7 @@ private:
     BL_OPTION m_option;
     BL_OPTION m_first;
     BL_OPTION m_default;
-    uint customColorIndex;
+    uint m_customColorIndex;
 };
 
 #endif // SETTINGDIALOG_H

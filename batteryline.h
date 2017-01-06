@@ -33,7 +33,7 @@ class BatteryLine : public QWidget
     Q_OBJECT
 
 public:
-    explicit BatteryLine(bool muteNotifcation, QWidget *parent = 0);
+    explicit BatteryLine(bool m_muteNotifcation, QWidget *parent = 0);
     ~BatteryLine();
 
 protected:
@@ -72,28 +72,29 @@ private:
     void WriteSettings();
     BL_OPTION DefaultSettings();
 
-    Notification* notification;
-    PowerNotify* powerNotify;
-    PowerStatus* powerStat;
+    Notification* m_notification;
+    PowerNotify* m_powerNotify;
+    PowerStatus* m_powerStat;
 
-    QSettings* setting;
-    BL_OPTION option;
+    QSettings* m_setting;
+    BL_OPTION m_option;
 
-    QMenu* trayIconMenu;
-    QSystemTrayIcon* trayIcon;
+    QMenu* m_trayIconMenu;
+    QSystemTrayIcon* m_trayIcon;
 
-    QAction* printBannerAct;
-    QAction* printHelpAct;
-    QAction* openHomepageAct;
-    QAction* openLicenseAct;
-    QAction* openSettingAct;
-    QAction* printPowerInfoAct;
-    QAction* exitAct;
+    QAction* m_printBannerAct;
+    QAction* m_printHelpAct;
+    QAction* m_openHomepageAct;
+    QAction* m_openLicenseAct;
+    QAction* m_openSettingAct;
+    QAction* m_printPowerInfoAct;
+    QAction* m_exitAct;
 
-    bool muteNotifcation;
+    bool m_muteNotifcation;
+    bool m_settingLock;
 
 #ifdef Q_OS_WIN
-    HWND hWnd;
+    HWND m_hWnd;
 #endif
 };
 

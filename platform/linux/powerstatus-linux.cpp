@@ -1,3 +1,4 @@
+#include "var.h"
 #include "powerstatus-linux.h"
 #include "../../systemhelper.h"
 
@@ -13,35 +14,73 @@
 PowerStatus::PowerStatus()
 {
     if (!QDBusConnection::systemBus().isConnected())
-        SystemHelper::SystemError("[Linux] Cannot connect to D-Bus' system bus");
+        SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(BL_PLATFORM));
 
-    dBusDisplayDevice = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
-    dBusLinePowerAC = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/line_power_AC", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
+    // Composite Battery which is virtualized
+    m_CompositeBattery = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
+
+    // Gather line power information
+    QDBusInterface dBusUPower("org.freedesktop.UPower", "/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus());
+    QDBusReply<QList<QDBusObjectPath>> dBusReply = dBusUPower.call("EnumerateDevices");
+    if (dBusReply.isValid() == false)
+    {
+        SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
+                                  .arg(BL_PLATFORM)
+                                  .arg(dBusReply.error().name())
+                                  .arg(dBusReply.error().message()));
+    }
+
+    QList<QDBusObjectPath> devList = dBusReply.value();
+    for (int i = 0; i < devList.count(); i++)
+    {
+        QDBusInterface dBusDeviceType("org.freedesktop.UPower", devList[i].path(), "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
+        QVariant type = dBusDeviceType.property("Type");
+        switch(type.toUInt())
+        {
+        case 1: // Line Power
+            m_LinePower.append(new QDBusInterface("org.freedesktop.UPower", devList[i].path(), "org.freedesktop.UPower.Device", QDBusConnection::systemBus()));
+            break;
+        case 2: // Battery
+            break;
+        default: // Ignore the others
+            break;
+        }
+    }
 
     Update();
 }
 
 PowerStatus::~PowerStatus()
 {
-    delete dBusDisplayDevice;
-    delete dBusLinePowerAC;
+    delete m_CompositeBattery;
+    while (m_LinePower.isEmpty() == false)
+    {
+        delete m_LinePower[0];
+        m_LinePower.removeFirst();
+    }
 
-    dBusDisplayDevice = nullptr;
-    dBusLinePowerAC = nullptr;
+    m_CompositeBattery = nullptr;
+    m_LinePower.clear();
 }
 
 // Return true if success
 void PowerStatus::Update()
 {
     // https://upower.freedesktop.org/docs/Device.html
-    QVariant batteryLevel = dBusDisplayDevice->property("Percentage"); // double
-    QVariant batteryExist = dBusDisplayDevice->property("IsPresent");  // bool
-    QVariant batteryState = dBusDisplayDevice->property("State");      // uint
-    QVariant acLineStatus = dBusLinePowerAC->property("Online");       // bool
+    // line power status
+    QList<QVariant> acLineStatus;
+    for (int i = 0; i < m_LinePower.count(); i++)
+        acLineStatus.append(m_LinePower[i]->property("Online")); // bool
+    this->ACLineStatus = true;
+    for (int i = 0; i < acLineStatus.count(); i++)
+        this->ACLineStatus &= acLineStatus[i].toBool();
 
+    // battery status
+    QVariant batteryLevel = m_CompositeBattery->property("Percentage"); // double
+    QVariant batteryExist = m_CompositeBattery->property("IsPresent");  // bool
+    QVariant batteryState = m_CompositeBattery->property("State");      // uint
     this->BatteryExist = batteryExist.toBool();
     this->BatteryLevel = batteryLevel.toInt();
-    this->ACLineStatus = acLineStatus.toBool();
     switch (batteryState.toInt())
     {
     case 1: // Charging
@@ -62,9 +101,12 @@ void PowerStatus::Update()
         this->BatteryCharging = false;
         this->BatteryFull = true;
         break;
-    case 0: // Unknown
+    case 0: // Unknown OR Battery does not exist
+        if (this->BatteryExist) // Error when battery DOES exist
+            SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(BL_PLATFORM));
+        break;
     default:
-        SystemHelper::SystemError(QObject::tr("[Linux] Power state unclear"));
+        SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(BL_PLATFORM));
         break;
     }
 

@@ -20,6 +20,9 @@ signals:
 private slots:
     void BatteryInfoChanged(QString, QVariantMap changedProperties, QStringList);
     void ACLineInfoChanged(QString, QVariantMap changedProperties, QStringList);
+
+private:
+    QList<QString> m_LinePower;
 };
 
 #endif // POWERNOTIFY_LINUX_H

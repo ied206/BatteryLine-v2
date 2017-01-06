@@ -3,7 +3,7 @@
 
 /*
  * Windows : Utilize SYSTEM_POWER_STATUS and GetSystemPowerStatus API
- * macOS   : Sadly, I don't have Apple device to implement and test
+ * macOS   : Sadly, I don't have Apple device to implement and test, please contribute!
  * Linux   : Utilize UPower, using D-Bus System Bus
  */
 

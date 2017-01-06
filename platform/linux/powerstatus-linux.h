@@ -3,11 +3,12 @@
 
 /*
  * Windows : Utilize SYSTEM_POWER_STATUS and GetSystemPowerStatus API
- * macOS   : Sadly, I don't have Apple device to implement and test
- * Linux   : Utilize UPower, using D-Bus' System Bus
+ * macOS   : Sadly, I don't have Apple device to implement and test, please contribute!
+ * Linux   : Utilize UPower, using D-Bus System Bus
  */
 
 #include <QObject>
+#include <QList>
 #include <cstdint>
 
 #ifdef Q_OS_LINUX
@@ -28,8 +29,8 @@ public:
     void Update();
 
 private:
-    QDBusInterface* dBusDisplayDevice;
-    QDBusInterface* dBusLinePowerAC;
+    QDBusInterface* m_CompositeBattery;
+    QList<QDBusInterface*> m_LinePower;
 };
 
 #endif // BATTERYSTATUS_H

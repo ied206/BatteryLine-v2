@@ -22,7 +22,7 @@ SettingDialog::SettingDialog(BL_OPTION option, BL_OPTION defaultOption, QWidget 
     m_default = defaultOption;
 
     setWindowIcon(QIcon(BL_ICON));
-    customColorIndex = 0;
+    m_customColorIndex = 0;
     UpdateDialog();
 }
 
@@ -106,32 +106,32 @@ void SettingDialog::on_fullColorPushButton_clicked()
 void SettingDialog::on_customEnableComboBox_currentIndexChanged(int index)
 {
     // CustomColor
-    customColorIndex = index;
-    ui->customEnableComboBox->setCurrentIndex(customColorIndex);
-    ui->customEnableCheckBox->setChecked(m_option.customEnable[customColorIndex]);
+    m_customColorIndex = index;
+    ui->customEnableComboBox->setCurrentIndex(m_customColorIndex);
+    ui->customEnableCheckBox->setChecked(m_option.customEnable[m_customColorIndex]);
 
-    ui->lowEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
-    ui->highEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
-    ui->customColorPushButton->setEnabled(m_option.customEnable[customColorIndex]);
+    ui->lowEdgeSpinBox->setEnabled(m_option.customEnable[m_customColorIndex]);
+    ui->highEdgeSpinBox->setEnabled(m_option.customEnable[m_customColorIndex]);
+    ui->customColorPushButton->setEnabled(m_option.customEnable[m_customColorIndex]);
 
-    ui->lowEdgeSpinBox->setValue(m_option.lowEdge[customColorIndex]);
-    ui->highEdgeSpinBox->setValue(m_option.highEdge[customColorIndex]);
-    if (m_option.customEnable[customColorIndex])
-        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[customColorIndex]) + ")");
+    ui->lowEdgeSpinBox->setValue(m_option.lowEdge[m_customColorIndex]);
+    ui->highEdgeSpinBox->setValue(m_option.highEdge[m_customColorIndex]);
+    if (m_option.customEnable[m_customColorIndex])
+        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[m_customColorIndex]) + ")");
     else
         ui->customColorPushButton->setText("Disabled");
-    ui->customColorPushButton->setPalette(m_option.customColor[customColorIndex]);
+    ui->customColorPushButton->setPalette(m_option.customColor[m_customColorIndex]);
 }
 
 void SettingDialog::on_customEnableCheckBox_toggled(bool checked)
 {
-    m_option.customEnable[customColorIndex] = checked;
-    emit SignalCustomColor(SettingCustomColorKey::Enable, customColorIndex, checked);
+    m_option.customEnable[m_customColorIndex] = checked;
+    emit SignalCustomColor(SettingCustomColorKey::Enable, m_customColorIndex, checked);
 
     ui->lowEdgeSpinBox->setEnabled(checked);
     ui->highEdgeSpinBox->setEnabled(checked);
-    if (m_option.customEnable[customColorIndex])
-        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[customColorIndex]) + ")");
+    if (m_option.customEnable[m_customColorIndex])
+        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[m_customColorIndex]) + ")");
     else
         ui->customColorPushButton->setText("Disabled");
     ui->customColorPushButton->setEnabled(checked);
@@ -140,25 +140,25 @@ void SettingDialog::on_customEnableCheckBox_toggled(bool checked)
 void SettingDialog::on_lowEdgeSpinBox_valueChanged(int value)
 {
     // Check validity when dialog is closed
-    if (m_option.customEnable[customColorIndex])
-        m_option.lowEdge[customColorIndex] = value;
+    if (m_option.customEnable[m_customColorIndex])
+        m_option.lowEdge[m_customColorIndex] = value;
 }
 
 void SettingDialog::on_highEdgeSpinBox_valueChanged(int value)
 {
     // Check validity when dialog is closed
-    if (m_option.customEnable[customColorIndex])
-        m_option.highEdge[customColorIndex] = value;
+    if (m_option.customEnable[m_customColorIndex])
+        m_option.highEdge[m_customColorIndex] = value;
 }
 
 void SettingDialog::on_customColorPushButton_clicked()
 {
-    QColor color = QColorDialog::getColor(m_option.customColor[customColorIndex], this);
+    QColor color = QColorDialog::getColor(m_option.customColor[m_customColorIndex], this);
     if (color.isValid())
     {
-        m_option.customColor[customColorIndex] = color;
-        ui->customColorPushButton->setPalette(m_option.customColor[customColorIndex]);
-        emit SignalCustomColor(SettingCustomColorKey::Color, customColorIndex, color);
+        m_option.customColor[m_customColorIndex] = color;
+        ui->customColorPushButton->setPalette(m_option.customColor[m_customColorIndex]);
+        emit SignalCustomColor(SettingCustomColorKey::Color, m_customColorIndex, color);
     }
 }
 
@@ -211,22 +211,22 @@ void SettingDialog::UpdateDialog()
     ui->fullColorPushButton->setPalette(m_option.fullColor);
 
     // CustomColor
-    ui->customEnableComboBox->setCurrentIndex(customColorIndex);
-    ui->customEnableCheckBox->setChecked(m_option.customEnable[customColorIndex]);
+    ui->customEnableComboBox->setCurrentIndex(m_customColorIndex);
+    ui->customEnableCheckBox->setChecked(m_option.customEnable[m_customColorIndex]);
 
-    ui->lowEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
-    ui->highEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
-    ui->customColorPushButton->setEnabled(m_option.customEnable[customColorIndex]);
+    ui->lowEdgeSpinBox->setEnabled(m_option.customEnable[m_customColorIndex]);
+    ui->highEdgeSpinBox->setEnabled(m_option.customEnable[m_customColorIndex]);
+    ui->customColorPushButton->setEnabled(m_option.customEnable[m_customColorIndex]);
 
     ui->lowEdgeSpinBox->setKeyboardTracking(false);
-    ui->lowEdgeSpinBox->setValue(m_option.lowEdge[customColorIndex]);
+    ui->lowEdgeSpinBox->setValue(m_option.lowEdge[m_customColorIndex]);
     ui->highEdgeSpinBox->setKeyboardTracking(false);
-    ui->highEdgeSpinBox->setValue(m_option.highEdge[customColorIndex]);
-    if (m_option.customEnable[customColorIndex])
-        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[customColorIndex]) + ")");
+    ui->highEdgeSpinBox->setValue(m_option.highEdge[m_customColorIndex]);
+    if (m_option.customEnable[m_customColorIndex])
+        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[m_customColorIndex]) + ")");
     else
         ui->customColorPushButton->setText("Disabled");
-    ui->customColorPushButton->setPalette(m_option.customColor[customColorIndex]);
+    ui->customColorPushButton->setPalette(m_option.customColor[m_customColorIndex]);
 
 }
 
@@ -245,8 +245,8 @@ void SettingDialog::done(int ret)
         {
             if (m_option.lowEdge[i] < m_option.highEdge[i])
             {
-                emit SignalCustomColor(SettingCustomColorKey::LowEdge, customColorIndex, ui->lowEdgeSpinBox->value());
-                emit SignalCustomColor(SettingCustomColorKey::HighEdge, customColorIndex, ui->highEdgeSpinBox->value());
+                emit SignalCustomColor(SettingCustomColorKey::LowEdge, m_customColorIndex, ui->lowEdgeSpinBox->value());
+                emit SignalCustomColor(SettingCustomColorKey::HighEdge, m_customColorIndex, ui->highEdgeSpinBox->value());
             }
             else // if (m_option.lowEdge[i] != 0 && m_option.highEdge[i] != 0)
             {
@@ -259,7 +259,7 @@ void SettingDialog::done(int ret)
                 msgBox.setDefaultButton(QMessageBox::Ok);
                 msgBox.exec();
 
-                customColorIndex = i;
+                m_customColorIndex = i;
                 m_option.customEnable[i] = false;
                 UpdateDialog();
 
@@ -319,7 +319,7 @@ void SettingDialog::done(int ret)
             {
                 if (x == overlapStartIndex)
                 {
-                    customColorIndex = x;
+                    m_customColorIndex = x;
                     m_option.highEdge[x] = m_option.lowEdge[overlapEndIndex];
                 }
             }

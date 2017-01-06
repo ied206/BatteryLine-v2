@@ -19,7 +19,7 @@ signals:
 
 private:
     // fp_Redraw_t RedrawCallback;
-    HWND hWnd;
+    HWND m_hWnd;
     HANDLE m_notPowerSrc;
     HANDLE m_notBatPer;
 };
