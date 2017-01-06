@@ -9,12 +9,14 @@ class SystemHelper
 {
 public:
     SystemHelper();
+
     static int WhatBitOS();
     static void BinaryDump(const uint8_t buf[], const uint32_t bufsize);
     static int CompileYear();
     static int CompileMonth();
     static int CompileDay();
     static void SystemError(const QString errorMsg);
+    static void QtExit(int code = 0);
     static QString RGB_QColorToQString(const QColor color);
     static QColor RGB_QStringToQColor(const QString str);
 

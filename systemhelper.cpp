@@ -138,10 +138,15 @@ void SystemHelper::SystemError(const QString errorMsg)
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
 
+    QtExit(1);
+}
+
+void SystemHelper::QtExit(int code)
+{
     if (SystemHelper::m_eventLoopRunning)
-        QCoreApplication::exit(1);
+        QCoreApplication::exit(code);
     else
-        exit(1);
+        exit(code);
 }
 
 void SystemHelper::eventLoopRunning(bool value)
