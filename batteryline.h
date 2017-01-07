@@ -33,7 +33,7 @@ class BatteryLine : public QWidget
     Q_OBJECT
 
 public:
-    explicit BatteryLine(bool m_muteNotifcation, QWidget *parent = 0);
+    explicit BatteryLine(const bool mute, const QString helpText, QWidget *parent = 0);
     ~BatteryLine();
 
 protected:
@@ -92,6 +92,8 @@ private:
 
     bool m_muteNotifcation;
     bool m_settingLock;
+
+    QString m_helpText;
 
 #ifdef Q_OS_WIN
     HWND m_hWnd;

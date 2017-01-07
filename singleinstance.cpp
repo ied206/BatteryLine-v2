@@ -1,21 +1,82 @@
 #include "singleinstance.h"
 #include "systemhelper.h"
 
-#include <QObject>
-#include <QDir>
 #include <QMessageBox>
+#include <QFile>
+#include <QTextStream>
+#include <QCoreApplication>
 
-SingleInstance::SingleInstance(const QString lockFile, const bool mute, const QApplication& app)
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+#ifdef Q_OS_LINUX
+#include <sys/types.h>
+#include <signal.h>
+#endif
+
+SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
 {
-    this->lockFile = lockFile;
-    lock = new QLockFile(lockFile);
-    if (!lock->tryLock(100))
-    {
-        if (mute)
-            SystemHelper::QtExit(1);
-        else
-            SystemHelper::SystemError("Another BatteryLine instance is already running.\nOnly one instance can run at once.");
+#ifdef Q_OS_WIN
+    // Kill BatteryLine v1.x
+    HWND hWndLegacy = FindWindowW(L"Joveler_BatteryLine", 0);
+    if (hWndLegacy != NULL) // Running BatteryLine found? Terminate it.
+        SendMessageW(hWndLegacy, WM_CLOSE, 0, 0);
+#endif
+
+    this->lockId = lockId;
+    this->lock = new QLockFile(lockId + ".lock");
+    if (lock->tryLock(100))
+    { // Lock success, leave process info (Win - hWnd, Linux - pid)
+        QFile pidFile(lockId + ".pid");
+        if (pidFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            QTextStream out(&pidFile);
+            out.setCodec("UTF-8");
+            out << QCoreApplication::applicationPid();
+            pidFile.close();
+        }
+        else // failure
+            SystemHelper::SystemError("Cannot write process id");
     }
+    else
+    { // Lock failure, another instance is running - so kill that instance and terminate
+        qint64 runningPid = 0;
+
+        QFile pidFile(lockId + ".pid");
+        if (pidFile.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            QTextStream in(&pidFile);
+            in.setCodec("UTF-8");
+            runningPid = in.readLine().trimmed().toInt();
+            pidFile.close();
+        }
+        else // failure
+            SystemHelper::SystemError("Cannot read process id");
+
+        // Try to kill running instance and terminate
+#ifdef Q_OS_WIN
+        DWORD winPid = static_cast<DWORD>(runningPid);
+        HWND hWndIter = FindWindowW(NULL, NULL); // Will iterate all 'hWnd'es to find BatteryLine
+        while (hWndIter != NULL)
+        {
+            DWORD getPid = 0;
+            GetWindowThreadProcessId(hWndIter, &getPid);
+            if (winPid == getPid && GetParent(hWndIter) == NULL) // Only check top-level window
+            {
+                SendMessageW(hWndIter, WM_CLOSE, 0, 0);
+                break;
+            }
+            hWndIter = GetWindow(hWndIter, GW_HWNDNEXT);
+        }
+#endif
+#ifdef Q_OS_LINUX
+        pid_t linuxPid = static_cast<pid_t>(runningPid);
+        kill(linuxPid, SIGTERM);
+#endif
+
+        SystemHelper::QtExit(0);
+    }
+
     connect(&app, &QCoreApplication::aboutToQuit, this, &SingleInstance::AboutToQuit);
 }
 
@@ -27,5 +88,7 @@ SingleInstance::~SingleInstance()
 void SingleInstance::AboutToQuit()
 {
     lock->unlock();
-    QFile::remove(lockFile);
+    QFile::remove(lockId + ".lock");
+    QFile::remove(lockId + ".pid");
+    QFile::remove(lockId + ".wid");
 }

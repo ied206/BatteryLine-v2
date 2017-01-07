@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
     // Parse Command Line Option
     QCommandLineParser parser;
-    parser.setApplicationDescription("Shows system's battery status as line in screen");
+    parser.setApplicationDescription("\nShows system's battery status as line in screen");
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption quietOption({ "q", "quiet"}, "Launch this program without notification.");
@@ -39,13 +39,14 @@ int main(int argc, char *argv[])
     parser.process(app);
 
     // Force single instance at once
-    SingleInstance single(BL_LOCKFILE, parser.isSet(quietOption), app);
+    SingleInstance single(BL_LOCKID, app);
     (void) single;
 
-    // Line as Window
-    BatteryLine line(parser.isSet(quietOption));
+    // Create BatteryLine instance
+    BatteryLine line(parser.isSet(quietOption), parser.helpText());
     line.show();
 
+    // Run!
     SystemHelper::eventLoopRunning(true);
     return app.exec();
 }

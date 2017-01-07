@@ -13,7 +13,7 @@
 #include <QUrl>
 
 
-BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
+BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *parent):
     QWidget(parent),
     ui(new Ui::BatteryLine)
 {
@@ -62,6 +62,9 @@ BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
     m_printPowerInfoAct = nullptr;
     m_exitAct = nullptr;
 
+    // Help message will be used in PrintHelpBanner
+    m_helpText = helpText;
+
     // Connect signal with screen change
     connect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
     connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
@@ -77,7 +80,7 @@ BatteryLine::BatteryLine(bool quiet, QWidget *parent) :
     ReadSettings();
 
     // Notification
-    m_muteNotifcation = quiet;
+    m_muteNotifcation = mute;
 
     // Set Window Size and Position, Color
     DrawLine();
@@ -415,13 +418,7 @@ void BatteryLine::TrayMenuPrintHelp()
 
     webBinary = BL_WEB_BINARY;
     webSource = BL_WEB_SOURCE;
-    msgStr = QString("[BatteryLine Help Message]\n"
-                  "Show battery status as line in screen.\n\n"
-                  "[Command Line Option]\n"
-                 "-q : Launch this program without notification.\n"
-                 "-h : Print this help message and exit.\n\n"
-                 "[Setting]\n"
-                 "You can edit BatteryLine's setting in BatteryLine.ini.");
+    msgStr = QString(m_helpText);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));

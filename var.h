@@ -16,7 +16,7 @@
 #ifdef _DEBUG // Debug - Use __DATE__
 #define BL_REL_DATE         (QString("%1%2%3").arg(SystemHelper::CompileYear(), 4, 10, QChar('0')).arg(SystemHelper::CompileMonth(), 2, 10, QChar('0')).arg(SystemHelper::CompileDay(), 2, 10, QChar('0')))
 #else // Release - Use internal date
-#define BL_REL_DATE         QString("20170106")
+#define BL_REL_DATE         QString("20170108")
 #endif
 #define BL_ORG_NAME         QString(RES_COMPANYNAME_STR)
 #define BL_ORG_DOMAIN       QString(RES_COMPANYDOMAIN_STR)
@@ -26,7 +26,7 @@
 #define BL_WEB_LICENSE      QString("https://github.com/ied206/BatteryLine/blob/master/LICENSE")
 
 #define BL_GUID             QString("f527817e-41bd-43a8-86ca-7a20575297ec")
-#define BL_LOCKFILE         QString(QDir::tempPath() + "/Joveler_BatteryLine_" + BL_GUID + ".lock")
+#define BL_LOCKID           QString(QDir::tempPath() + "/Joveler_BatteryLine_" + BL_GUID)
 #define BL_ICON             QString(":/images/Cycle.png")
 
 #if defined(Q_OS_WIN)
