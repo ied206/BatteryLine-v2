@@ -10,7 +10,8 @@ class SystemHelper
 public:
     SystemHelper();
 
-    static int WhatBitOS();
+    static QString ArchOS();
+    static int ArchBit();
     static void BinaryDump(const uint8_t buf[], const uint32_t bufsize);
     static int CompileYear();
     static int CompileMonth();

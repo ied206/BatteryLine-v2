@@ -390,14 +390,15 @@ void BatteryLine::TrayMenuPrintBanner()
 
     webBinary = BL_WEB_BINARY;
     webSource = BL_WEB_SOURCE;
-    msgStr = QString("Joveler's BatteryLine v%1.%2 (%3bit)\n"
+    msgStr = QString("Joveler's BatteryLine v%1.%2 (%3, %4bit)\n"
                   "Show battery status as line in screen.\n\n"
-                  "[Binary] %4\n"
-                  "[Source] %5\n\n"
-                  "Build %6")
+                  "[Binary] %5\n"
+                  "[Source] %6\n\n"
+                  "Build %7")
             .arg(BL_MAJOR_VER)
             .arg(BL_MINOR_VER)
-            .arg(SystemHelper::WhatBitOS())
+            .arg(SystemHelper::ArchOS())
+            .arg(SystemHelper::ArchBit())
             .arg(webBinary)
             .arg(webSource)
             .arg(BL_REL_DATE);

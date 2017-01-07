@@ -18,7 +18,17 @@ SystemHelper::SystemHelper()
     m_eventLoopRunning = false;
 }
 
-int SystemHelper::WhatBitOS()
+QString SystemHelper::ArchOS()
+{
+#ifdef Q_OS_WIN
+    return "Windows";
+#endif
+#ifdef Q_OS_LINUX
+    return "Linux";
+#endif
+}
+
+int SystemHelper::ArchBit()
 {
     return sizeof(void*) * 8;
 }
