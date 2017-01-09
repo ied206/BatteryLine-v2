@@ -90,5 +90,4 @@ void SingleInstance::AboutToQuit()
     lock->unlock();
     QFile::remove(lockId + ".lock");
     QFile::remove(lockId + ".pid");
-    QFile::remove(lockId + ".wid");
 }

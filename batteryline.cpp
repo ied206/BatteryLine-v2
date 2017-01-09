@@ -386,22 +386,19 @@ void BatteryLine::TrayMenuExit()
 
 void BatteryLine::TrayMenuPrintBanner()
 {
-    QString msgStr, webBinary, webSource;
-
-    webBinary = BL_WEB_BINARY;
-    webSource = BL_WEB_SOURCE;
-    msgStr = QString("Joveler's BatteryLine v%1.%2 (%3, %4bit)\n"
-                  "Show battery status as line in screen.\n\n"
-                  "[Binary] %5\n"
-                  "[Source] %6\n\n"
-                  "Build %7")
-            .arg(BL_MAJOR_VER)
-            .arg(BL_MINOR_VER)
-            .arg(SystemHelper::ArchOS())
-            .arg(SystemHelper::ArchBit())
-            .arg(webBinary)
-            .arg(webSource)
-            .arg(BL_REL_DATE);
+    QString msgStr =
+        QString("Joveler's BatteryLine v%1.%2 (%3, %4bit)\n"
+                "Show battery status as line in screen.\n\n"
+                "[Binary] %5\n"
+                "[Source] %6\n\n"
+                "Build %7")
+        .arg(BL_MAJOR_VER)
+        .arg(BL_MINOR_VER)
+        .arg(SystemHelper::ArchOS())
+        .arg(SystemHelper::ArchBit())
+        .arg(BL_WEB_BINARY)
+        .arg(BL_WEB_SOURCE)
+        .arg(BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -415,16 +412,10 @@ void BatteryLine::TrayMenuPrintBanner()
 
 void BatteryLine::TrayMenuPrintHelp()
 {
-    QString msgStr, webBinary, webSource;
-
-    webBinary = BL_WEB_BINARY;
-    webSource = BL_WEB_SOURCE;
-    msgStr = QString(m_helpText);
-
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setWindowTitle(BL_APP_NAME);
-    msgBox.setText(msgStr);
+    msgBox.setText(QString(m_helpText));
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
