@@ -12,11 +12,11 @@
 class PowerStatus
 {
 public:
-    bool BatteryExist; // Is this system has battery?
-    uint32_t BatteryLevel; // 0 - 100
-    bool BatteryCharging; // Is battery is being charged?
-    bool BatteryFull; // Is battery full?
-    bool ACLineStatus; // Is this system is charging with AC Line?
+    bool m_BatteryExist; // Is this system has battery?
+    int m_BatteryLevel; // 0 - 100
+    bool m_BatteryCharging; // Is battery is being charged?
+    bool m_BatteryFull; // Is battery full?
+    bool m_ACLineStatus; // Is this system is charging with AC Line?
 
     PowerStatus();
     ~PowerStatus();

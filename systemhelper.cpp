@@ -117,7 +117,7 @@ int SystemHelper::CompileMonth()
 
     for (i = 0; i < 12; i++)
     {
-        if (strstr(macro, smonth[i]) != NULL)
+        if (strstr(macro, smonth[i]) != nullptr)
             return i + 1;
     }
 

@@ -1,10 +1,6 @@
-BatteryLine : Show Battery Status as line in screen
-Copyright (c) 2016 Hajin Jang
-All rights reserved.
+MIT License (MIT)
 
-The MIT License (MIT)
-
-Copyright (c) 2016 Hajin Jang
+Copyright (c) 2016-2018 Hajin Jang
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,3 +19,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+-------------------------------------------------------------------------------
+BatteryLine depends on Open Source Software (OSS).
+This is the list of open source projects and licenses.
+
+Qt Toolkit
+    LGPLv3 License
+    https://www.gnu.org/licenses/lgpl-3.0.en.html
+
+    Copyright (C) The Qt Company Ltd. and other contributors.
+    http://www.qt.io
