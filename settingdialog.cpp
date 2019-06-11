@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QScreen>
+#include <QList>
 
 SettingDialog::SettingDialog(BL_OPTION option, BL_OPTION defaultOption, QWidget *parent):
     QDialog(parent),
@@ -107,15 +108,15 @@ void SettingDialog::on_customEnableComboBox_currentIndexChanged(int index)
 {
     // CustomColor
     customColorIndex = index;
-    ui->customEnableComboBox->setCurrentIndex(customColorIndex);
+    ui->customEnableComboBox->setCurrentIndex(static_cast<int>(customColorIndex));
     ui->customEnableCheckBox->setChecked(m_option.customEnable[customColorIndex]);
 
     ui->lowEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
     ui->highEdgeSpinBox->setEnabled(m_option.customEnable[customColorIndex]);
     ui->customColorPushButton->setEnabled(m_option.customEnable[customColorIndex]);
 
-    ui->lowEdgeSpinBox->setValue(m_option.lowEdge[customColorIndex]);
-    ui->highEdgeSpinBox->setValue(m_option.highEdge[customColorIndex]);
+    ui->lowEdgeSpinBox->setValue(static_cast<int>(m_option.lowEdge[customColorIndex]));
+    ui->highEdgeSpinBox->setValue(static_cast<int>(m_option.highEdge[customColorIndex]));
     if (m_option.customEnable[customColorIndex])
         ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[customColorIndex]) + ")");
     else
@@ -189,12 +190,14 @@ void SettingDialog::UpdateDialog()
     else
         ui->customMonitorComboBox->setEnabled(true);
 
-    QDesktopWidget* desktop = QApplication::desktop();
-    int screenCount = desktop->screenCount();
+    QList<QScreen*> screens = QGuiApplication::screens();
+    int screenCount = screens.size();
+
     ui->customMonitorComboBox->clear();
     for (int i = 0; i < screenCount; i++)
     {
-        QRect screenRect = desktop->screenGeometry(i);
+        QScreen* screen = screens.at(i);
+        QRect screenRect = screen->geometry();
         ui->customMonitorComboBox->addItem(QString("Monitor %1 (%2x%3)")
                                            .arg(i + 1)
                                            .arg(screenRect.width()).
@@ -274,7 +277,7 @@ void SettingDialog::done(int ret)
     {
         if (m_option.customEnable[i])
         {
-            for (uint x = m_option.lowEdge[i]; x < m_option.highEdge[i]; x++)
+            for (int x = m_option.lowEdge[i]; x < m_option.highEdge[i]; x++)
                 covered[x]++;
         }
     }
@@ -283,7 +286,7 @@ void SettingDialog::done(int ret)
     {
         if (1 < covered[i])
         { // Overlap detected!
-            uint x, overlapStart = i, overlapEnd = i;
+            int x, overlapStart = i, overlapEnd = i;
             for (x = i + 1; x < 100; x++)
             {
                 if (covered[x] == 1)
@@ -293,7 +296,7 @@ void SettingDialog::done(int ret)
                 }
             }
 
-            uint overlapStartIndex = 0, overlapEndIndex = 0;
+            int overlapStartIndex = 0, overlapEndIndex = 0;
             for (x = 0; x < BL_COLOR_LEVEL; x++)
             {
                 if (m_option.lowEdge[x] < overlapStart && overlapStart < m_option.highEdge[x])
@@ -329,7 +332,6 @@ void SettingDialog::done(int ret)
             {
             case QDialog::Accepted:
                 return;
-                break;
             case QDialog::Rejected:
                 QDialog::done(ret);
                 break;

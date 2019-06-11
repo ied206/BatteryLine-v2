@@ -11,6 +11,9 @@
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QWindow>
+#include <QScreen>
+#include <QGuiApplication>
 
 
 BatteryLine::BatteryLine(QWidget *parent) :
@@ -28,7 +31,7 @@ BatteryLine::BatteryLine(QWidget *parent) :
 
 #ifdef Q_OS_WIN
     // Give WS_EX_NOACTIVE property
-    hWnd = (HWND) this->winId();
+    hWnd = reinterpret_cast<HWND>(this->winId());
     LONG dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
     dwExStyle |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
     SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
@@ -65,10 +68,12 @@ BatteryLine::BatteryLine(QWidget *parent) :
     exitAct = nullptr;
 
     // Connect signal with screen change
-    connect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
-    connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
-    connect(QApplication::desktop(), &QDesktopWidget::resized, this, &BatteryLine::ScreenResized);
-    connect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
+    QScreen* screen = QGuiApplication::primaryScreen();
+    connect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
+    // connect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
+    // connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
+    // connect(QApplication::desktop(), &QDesktopWidget::resized, this, &BatteryLine::ScreenResized);
+    // connect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
 
     // Tray Icon
     CreateTrayIcon();
@@ -85,10 +90,14 @@ BatteryLine::BatteryLine(QWidget *parent) :
 BatteryLine::~BatteryLine()
 {
     // Connect signal with screen change
+    QScreen* screen = QGuiApplication::primaryScreen();
+    disconnect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
+    /*
     disconnect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
     disconnect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
     disconnect(QApplication::desktop(), &QDesktopWidget::resized, this, &BatteryLine::ScreenResized);
     disconnect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
+    */
 
     // Disconnect Signal with m_powerNotify
     disconnect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
@@ -141,18 +150,26 @@ void BatteryLine::DrawLine()
 // Must update m_batStat first
 void BatteryLine::SetWindowSizePos()
 {
+    QScreen* targetScreen;
     QRect screenWorkRect; // availableGeometry - Resolution excluding taskbar
     QRect screenFullRect; // screenGeometry - Full resoultion
     QRect appRect;
-    int targetScreen = 0;
 
     if (m_option.mainMonitor == true) // Main Monitor
-        targetScreen = -1;
+    {
+        targetScreen = QGuiApplication::primaryScreen();
+    }
     else // Custom Monitor
-        targetScreen = m_option.customMonitor;
+    {
+        QList<QScreen*> screens = QGuiApplication::screens();
+        if (m_option.customMonitor < 0 || screens.size() <= m_option.customMonitor)
+            targetScreen = screens.at(m_option.customMonitor);
+        else // Silently fallback to primary monitor
+            targetScreen = QGuiApplication::primaryScreen();
+    }
 
-    screenWorkRect = QApplication::desktop()->availableGeometry(targetScreen);
-    screenFullRect = QApplication::desktop()->screenGeometry(targetScreen);
+    screenWorkRect = targetScreen->availableGeometry();
+    screenFullRect = targetScreen->geometry();
 
     int appLeft = 0;
     int appTop = 0;
@@ -274,6 +291,7 @@ void BatteryLine::SetColor()
     this->setPalette(palette);
 }
 
+// Obsolete QDesktopWidget slots
 void BatteryLine::PrimaryScreenChanged()
 {
     DrawLine();
@@ -294,6 +312,13 @@ void BatteryLine::ScreenResized(int screen)
 void BatteryLine::ScreenWorkAreaResized(int screen)
 {
     (void) screen;
+    DrawLine();
+}
+
+// QScreen slots
+void BatteryLine::AvailableGeometryChanged(const QRect &geometry)
+{
+    (void) geometry; // Remove unsued parameter warning
     DrawLine();
 }
 
@@ -363,7 +388,6 @@ void BatteryLine::TrayIconClicked(QSystemTrayIcon::ActivationReason reason)
     case QSystemTrayIcon::DoubleClick: // DoubleClick
     case QSystemTrayIcon::MiddleClick: // MiddleClick
     case QSystemTrayIcon::Unknown:
-    default:
         break;
     }
 }
@@ -389,9 +413,9 @@ void BatteryLine::TrayMenuPrintBanner()
             .arg(SystemHelper::WhatBitOS())
             .arg(webBinary)
             .arg(webSource)
-            .arg(SystemHelper::CompileYear())
-            .arg(SystemHelper::CompileMonth())
-            .arg(SystemHelper::CompileDay());
+            .arg(SystemHelper::CompileYear(), 4, 10, QChar('0'))
+            .arg(SystemHelper::CompileMonth(), 2, 10, QChar('0'))
+            .arg(SystemHelper::CompileDay(), 2, 10, QChar('0'));
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -441,17 +465,16 @@ void BatteryLine::TrayMenuLicense()
 
 void BatteryLine::TrayMenuSetting()
 {
-    // SettingDialog dialog(m_option, this);
-    SettingDialog dialog(m_option, DefaultSettings(), 0);
-    connect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingSlotGeneral(SettingGeneralKey, QVariant)));
-    connect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingSlotBasicColor(SettingBasicColorKey,QVariant)));
-    connect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingSlotCustomColor(SettingCustomColorKey, int, QVariant)));
-    connect(&dialog, SIGNAL(SignalDefaultSetting()), this, SLOT(SettingSlotDefault()));
+    SettingDialog dialog(m_option, DefaultSettings(), nullptr);
+    connect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
+    connect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
+    connect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
+    connect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
     dialog.exec();
-    disconnect(&dialog, SIGNAL(SignalGeneral(SettingGeneralKey, QVariant)), this, SLOT(SettingSlotGeneral(SettingGeneralKey, QVariant)));
-    disconnect(&dialog, SIGNAL(SignalBasicColor(SettingBasicColorKey, QVariant)), this, SLOT(SettingSlotBasicColor(SettingBasicColorKey,QVariant)));
-    disconnect(&dialog, SIGNAL(SignalCustomColor(SettingCustomColorKey, int, QVariant)), this, SLOT(SettingSlotCustomColor(SettingCustomColorKey, int, QVariant)));
-    disconnect(&dialog, SIGNAL(SignalDefaultSetting()), this, SLOT(SettingSlotDefault()));
+    disconnect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
+    disconnect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
+    disconnect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
+    disconnect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
 }
 
 void BatteryLine::TrayMenuPowerInfo()
@@ -495,28 +518,25 @@ void BatteryLine::SettingSlotGeneral(SettingGeneralKey key, QVariant entry)
     switch (key)
     {
     case SettingGeneralKey::Height:
-        m_option.height = entry.toUInt();
+        m_option.height = entry.toInt();
         break;
     case SettingGeneralKey::Position:
-        m_option.position = entry.toUInt();
+        m_option.position = entry.toInt();
         break;
     case SettingGeneralKey::Transparency:
-        m_option.transparency = entry.toUInt();
+        m_option.transparency = entry.toInt();
         break;
     case SettingGeneralKey::ShowCharge:
         m_option.showCharge = entry.toBool();
         break;
     case SettingGeneralKey::Align:
-        m_option.align = entry.toUInt();
+        m_option.align = entry.toInt();
         break;
     case SettingGeneralKey::MainMonitor:
-        if (entry.toBool())
-            m_option.mainMonitor = true;
-        else
-            m_option.mainMonitor = false;
+        m_option.mainMonitor = entry.toBool();
         break;
     case SettingGeneralKey::CustomMonitor:
-        m_option.customMonitor = entry.toUInt();
+        m_option.customMonitor = entry.toInt();
         break;
     }
 
@@ -575,12 +595,12 @@ void BatteryLine::SettingSlotDefault()
 void BatteryLine::ReadSettings()
 {
     // Default Value
-    m_option.height = m_setting->value("height", 5).toUInt();
-    m_option.position = m_setting->value("position", static_cast<int>(SettingPosition::Top)).toUInt();
-    m_option.transparency = m_setting->value("transparency", 196).toUInt();
+    m_option.height = m_setting->value("height", 5).toInt();
+    m_option.position = m_setting->value("position", static_cast<int>(SettingPosition::Top)).toInt();
+    m_option.transparency = m_setting->value("transparency", 196).toInt();
     m_option.showCharge = m_setting->value("showcharge", true).toBool();
-    m_option.align = m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toUInt();
-    uint monitor = m_setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toUInt();
+    m_option.align = m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toInt();
+    int monitor = m_setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toInt();
     if (monitor == static_cast<int>(SettingMonitor::Primary))
     {
         m_option.mainMonitor = true;
@@ -601,18 +621,18 @@ void BatteryLine::ReadSettings()
     m_setting->beginGroup("CustomColor");
     m_option.customEnable[0] = m_setting->value("customenable1", true).toBool();
     m_option.customColor[0] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
-    m_option.lowEdge[0] = m_setting->value("lowedge1", 0).toUInt();
-    m_option.highEdge[0] = m_setting->value("highedge1", 20).toUInt();
+    m_option.lowEdge[0] = m_setting->value("lowedge1", 0).toInt();
+    m_option.highEdge[0] = m_setting->value("highedge1", 20).toInt();
     m_option.customEnable[1] = m_setting->value("customenable2", true).toBool();
     m_option.customColor[1] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
-    m_option.lowEdge[1] = m_setting->value("lowedge2", 20).toUInt();
-    m_option.highEdge[1] = m_setting->value("highedge2", 50).toUInt();
+    m_option.lowEdge[1] = m_setting->value("lowedge2", 20).toInt();
+    m_option.highEdge[1] = m_setting->value("highedge2", 50).toInt();
     for (uint i = 2; i < BL_COLOR_LEVEL; i++)
     {
         m_option.customEnable[i] = m_setting->value(QString("customenable%1").arg(i + 1), false).toBool();
         m_option.customColor[i] = SystemHelper::RGB_QStringToQColor(m_setting->value(QString("customcolor%1").arg(i + 1), SystemHelper::RGB_QColorToQString(BL_DEFAULT_DISABLED_COLOR)).toString());
-        m_option.lowEdge[i] = m_setting->value(QString("lowedge%1").arg(i + 1), 0).toUInt();
-        m_option.highEdge[i] = m_setting->value(QString("highedge%1").arg(i + 1), 0).toUInt();
+        m_option.lowEdge[i] = m_setting->value(QString("lowedge%1").arg(i + 1), 0).toInt();
+        m_option.highEdge[i] = m_setting->value(QString("highedge%1").arg(i + 1), 0).toInt();
     }
     m_setting->endGroup();
 }
@@ -624,7 +644,7 @@ void BatteryLine::WriteSettings()
     m_setting->setValue("transparency", m_option.transparency);
     m_setting->setValue("showcharge", m_option.showCharge);
     m_setting->setValue("align", m_option.align);
-    if (m_option.mainMonitor == true)
+    if (m_option.mainMonitor)
         m_setting->setValue("monitor", 0);
     else
         m_setting->setValue("monitor", m_option.customMonitor);

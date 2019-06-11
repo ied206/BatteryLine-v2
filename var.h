@@ -5,7 +5,7 @@
 #include <QDir>
 
 #define BL_MAJOR_VER		2
-#define BL_MINOR_VER		0
+#define BL_MINOR_VER		1
 #define BL_ORG_NAME         QString("Joveler")
 #define BL_ORG_DOMAIN       QString("joveler.kr")
 #define BL_APP_NAME         QString("BatteryLine")

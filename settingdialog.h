@@ -18,19 +18,19 @@ enum class SettingAlign { LeftTop = 0, RightBottom = 1 };
 #define BL_DEFAULT_DISABLED_COLOR   QColor(255, 255, 255)
 struct bl_option
 {
-    uint32_t height;		// Battery line's height (in pixel)
-    uint32_t position;		// Where to show battery line? (TOP | BOTTOM | LEFT | RIGHT)
-    uint32_t transparency;	// Transparency of battery line
+    int height;		// Battery line's height (in pixel)
+    int position;		// Where to show battery line? (TOP | BOTTOM | LEFT | RIGHT)
+    int transparency;	// Transparency of battery line
     bool showCharge;		// Show battery line when charging?
-    uint32_t align;         // Align to Left/Top or Right/Bottom?
+    int align;         // Align to Left/Top or Right/Bottom?
     bool mainMonitor;		// Which monitor to show battery line?
-    uint32_t customMonitor;	// Which monitor to show battery line?
+    int customMonitor;	// Which monitor to show battery line?
     QColor defaultColor;	// Battery line's default color
     QColor chargeColor;	    // Battery line's color when charging
     QColor fullColor;		// Battery line's color when charging is done
     bool customEnable[BL_COLOR_LEVEL];  // User defined battery line's color count
-    uint32_t lowEdge[BL_COLOR_LEVEL];       // User defined edges to pick up user defined color
-    uint32_t highEdge[BL_COLOR_LEVEL];      // User defined edges to pick up user defined color
+    int lowEdge[BL_COLOR_LEVEL];       // User defined edges to pick up user defined color
+    int highEdge[BL_COLOR_LEVEL];      // User defined edges to pick up user defined color
     QColor customColor[BL_COLOR_LEVEL];     // User defined battery line's color
 };
 typedef struct bl_option BL_OPTION;
@@ -44,7 +44,7 @@ class SettingDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SettingDialog(BL_OPTION option, BL_OPTION defaultOption, QWidget *parent = 0);
+    explicit SettingDialog(BL_OPTION option, BL_OPTION defaultOption, QWidget *parent = nullptr);
     ~SettingDialog();
 
 signals:
@@ -82,7 +82,7 @@ private:
     BL_OPTION m_option;
     BL_OPTION m_first;
     BL_OPTION m_default;
-    uint customColorIndex;
+    int customColorIndex;
 };
 
 #endif // SETTINGDIALOG_H

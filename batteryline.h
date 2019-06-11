@@ -31,7 +31,7 @@ class BatteryLine : public QWidget
     Q_OBJECT
 
 public:
-    explicit BatteryLine(QWidget *parent = 0);
+    explicit BatteryLine(QWidget *parent = nullptr);
     ~BatteryLine();
 
 protected:
@@ -40,10 +40,13 @@ protected:
 #endif
 
 private slots:
+    // Obsolete QDesktopWidget slots
     void PrimaryScreenChanged();
     void ScreenCountChanged(int newCount);
     void ScreenResized(int screen);
     void ScreenWorkAreaResized(int screen);
+    // QScreen slots
+    void AvailableGeometryChanged(const QRect &geometry);
 
     void TrayIconClicked(QSystemTrayIcon::ActivationReason reason);
     void TrayMenuPrintBanner();
