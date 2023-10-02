@@ -518,9 +518,7 @@ void BatteryLine::TrayMenuPrintBanner()
         .arg(BL_MINOR_VER)
         .arg(SystemHelper::ArchOS())
         .arg(SystemHelper::ArchBit())
-        .arg(BL_WEB_BINARY)
-        .arg(BL_WEB_SOURCE)
-        .arg(BL_REL_DATE);
+        .arg(BL_WEB_BINARY, BL_WEB_SOURCE, BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -598,8 +596,7 @@ void BatteryLine::TrayMenuPowerInfo()
     msgFull = QString("Power Source : %1\n"
                      "Battery Status : %2\n"
                      "Battery Percent : %3%\n")
-            .arg(msgAcPower)
-            .arg(msgCharge)
+            .arg(msgAcPower, msgCharge)
             .arg(m_powerStat->m_BatteryLevel);
 
     QMessageBox msgBox;
