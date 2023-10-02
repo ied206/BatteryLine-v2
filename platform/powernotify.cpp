@@ -1,10 +1,76 @@
 #include "var.h"
 
-#include "powernotify-linux.h"
-#include "../../systemhelper.h"
+#include "powernotify.h"
+#include "../systemhelper.h"
 
 #include <QDebug>
 
+PowerNotify* PowerNotify::CreateInstance()
+{
+#ifdef Q_OS_WIN
+    return new PowerNotifyWin();
+#elif defined(Q_OS_LINUX)
+    return new PowerNotifyLinux();
+#endif
+}
+
+#ifdef Q_OS_WIN
+PowerNotifyWin::PowerNotifyWin()
+{
+
+}
+
+PowerNotifyWin::~PowerNotifyWin()
+{
+
+}
+
+bool PowerNotifyWin::Register(void* handle)
+{
+    if (handle == nullptr)
+    {
+        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(BL_PLATFORM));
+        return false;
+    }
+
+    HWND hWnd = reinterpret_cast<HWND>(handle);
+    this->m_hWnd = hWnd;
+
+    // Register to Windows' Power Notification
+    m_notPowerSrc = RegisterPowerSettingNotification(hWnd, &GUID_ACDC_POWER_SOURCE, DEVICE_NOTIFY_WINDOW_HANDLE);
+    m_notBatPer = RegisterPowerSettingNotification(hWnd, &GUID_BATTERY_PERCENTAGE_REMAINING, DEVICE_NOTIFY_WINDOW_HANDLE);
+    if (m_notPowerSrc == nullptr || m_notBatPer == nullptr)
+    {
+        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(BL_PLATFORM));
+        return false;
+    }
+
+    return true;
+}
+
+bool PowerNotifyWin::Unregister()
+{
+    if (m_notPowerSrc == nullptr || m_notBatPer == nullptr)
+    {
+        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(BL_PLATFORM));
+        return false;
+    }
+
+    // Unregister from power notification
+    BOOL result;
+    result = UnregisterPowerSettingNotification(m_notBatPer);
+    result &= UnregisterPowerSettingNotification(m_notPowerSrc);
+    if (result == FALSE)
+    {
+        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(BL_PLATFORM));
+        return false;
+    }
+
+    return true;
+}
+#endif
+
+#ifdef Q_OS_LINUX
 PowerNotify::PowerNotify()
 {
     if (!QDBusConnection::systemBus().isConnected())
@@ -16,9 +82,9 @@ PowerNotify::PowerNotify()
     if (dBusReply.isValid() == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
-                                  .arg(BL_PLATFORM)
-                                  .arg(dBusReply.error().name())
-                                  .arg(dBusReply.error().message()));
+                                      .arg(BL_PLATFORM)
+                                      .arg(dBusReply.error().name())
+                                      .arg(dBusReply.error().message()));
     }
 
     QList<QDBusObjectPath> devList = dBusReply.value();
@@ -75,4 +141,4 @@ void PowerNotify::ACLineInfoChanged(QString, QVariantMap changedProperties, QStr
     if (acLineOnline.isValid())  // AC Adaptor has been plugged out or in
         emit RedrawSignal();
 }
-
+#endif

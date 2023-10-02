@@ -15,7 +15,7 @@
 #ifdef _DEBUG // Debug - Use __DATE__
 #define BL_REL_DATE         (QString("%1%2%3").arg(SystemHelper::CompileYear(), 4, 10, QChar('0')).arg(SystemHelper::CompileMonth(), 2, 10, QChar('0')).arg(SystemHelper::CompileDay(), 2, 10, QChar('0')))
 #else // Release - Use internal date
-#define BL_REL_DATE         QString("20190611")
+#define BL_REL_DATE         QString("20190614")
 #endif
 #define BL_ORG_NAME         QString(RES_COMPANYNAME_STR)
 #define BL_ORG_DOMAIN       QString(RES_COMPANYDOMAIN_STR)

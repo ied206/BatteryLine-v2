@@ -4,7 +4,6 @@
 #include "ui_settingdialog.h"
 #include "systemhelper.h"
 
-#include <QDesktopWidget>
 #include <QColorDialog>
 #include <QAbstractButton>
 #include <QDebug>

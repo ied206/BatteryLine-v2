@@ -3,8 +3,6 @@
 
 // sudo apt install libgl-dev
 
-#include "var.h"
-
 #include <QWidget>
 #include <QMenu>
 #include <QSystemTrayIcon>
@@ -13,16 +11,9 @@
 
 #include "settingdialog.h"
 
-#ifdef Q_OS_WIN
-#include "platform/win/notification-win.h"
-#include "platform/win/powernotify-win.h"
-#include "platform/win/powerstatus-win.h"
-#endif
-#ifdef Q_OS_LINUX
-#include "platform/linux/notification-linux.h"
-#include "platform/linux/powernotify-linux.h"
-#include "platform/linux/powerstatus-linux.h"
-#endif
+#include "platform/notification.h"
+#include "platform/powernotify.h"
+#include "platform/powerstatus.h"
 
 namespace Ui {
     class BatteryLine;
@@ -38,17 +29,19 @@ public:
 
 protected:
 #ifdef Q_OS_WIN
-    bool nativeEvent(const QByteArray &eventType, void *message, long *result);
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
 #endif
 
 private slots:
-    // Obsolete QDesktopWidget slots
-    void PrimaryScreenChanged();
-    void ScreenCountChanged(int newCount);
-    void ScreenResized(int screen);
-    void ScreenWorkAreaResized(int screen);
+    // QGuiApplication slots
+    void PrimaryScreenChanged(QScreen* screen);
+    void ScreenAdded(QScreen* screen);
+    void ScreenRemoved(QScreen* screen);
     // QScreen slots
     void AvailableGeometryChanged(const QRect &geometry);
+    void GeometryChanged(const QRect &geometry);
+    // QTimer slots
+    void TimerTimeout();
 
     void TrayIconClicked(QSystemTrayIcon::ActivationReason reason);
     void TrayMenuPrintBanner();
@@ -66,25 +59,41 @@ private slots:
 
 private:
     Ui::BatteryLine *ui;
+    // DrawLine Series
     void DrawLine();
     void SetWindowSizePos();
     void SetColor();
+    // Manage QGuiApplication and QScreen Signals
+    void ConnectSignals(QScreen* screen = nullptr);
+    void DisconnectSignals(QScreen* screen = nullptr);
+    void ChangeQScreenToSignal(QScreen* newScreen);
+    // TrayMenu
     void CreateTrayIcon();
+    // Manage Settings
     QString GetIniFullPath();
     void ReadSettings();
     void WriteSettings();
     BL_OPTION DefaultSettings();
 
+// Member Variables
+    // QScreen slot sender
+    QScreen* m_screen;
+
+    // Power Notification
     Notification* m_notification;
     PowerNotify* m_powerNotify;
     PowerStatus* m_powerStat;
 
+    // Timer
+    QTimer* m_timer;
+
+    // Setting
     QSettings* m_setting;
     BL_OPTION m_option;
 
+    // TrayIconMenu
     QMenu* m_trayIconMenu;
     QSystemTrayIcon* m_trayIcon;
-
     QAction* m_printBannerAct;
     QAction* m_printHelpAct;
     QAction* m_openHomepageAct;

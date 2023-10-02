@@ -24,22 +24,16 @@ CONFIG(debug, release|debug):DEFINES += _DEBUG
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
-CONFIG += c++11
+CONFIG += c++17
 
-SOURCES += main.cpp\
-     batteryline.cpp \
+SOURCES += main.cpp \
+    batteryline.cpp \
     systemhelper.cpp \
     settingdialog.cpp \
     singleinstance.cpp \
-
-win32: SOURCES += \
-    platform/win/powernotify-win.cpp \
-    platform/win/powerstatus-win.cpp \
-    platform/win/notification-win.cpp
-linux: SOURCES += \
-    platform/linux/powernotify-linux.cpp \
-    platform/linux/powerstatus-linux.cpp \
-    platform/linux/notification-linux.cpp
+    platform/notification.cpp \
+    platform/powernotify.cpp \
+    platform/powerstatus.cpp
 
 HEADERS  += batteryline.h \
     var.h \
@@ -47,15 +41,9 @@ HEADERS  += batteryline.h \
     settingdialog.h \
     singleinstance.h \
     resource.h \
-
-win32: HEADERS += \
-    platform/win/powernotify-win.h \
-    platform/win/powerstatus-win.h \
-    platform/win/notification-win.h
-linux: HEADERS += \
-    platform/linux/powernotify-linux.h \
-    platform/linux/powerstatus-linux.h \
-    platform/linux/notification-linux.h
+    platform/notification.h \
+    platform/powernotify.h \
+    platform/powerstatus.h
 
 FORMS    += batteryline.ui \
     settingdialog.ui

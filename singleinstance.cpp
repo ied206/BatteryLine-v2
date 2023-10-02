@@ -31,7 +31,7 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
         if (pidFile.open(QIODevice::WriteOnly | QIODevice::Text))
         {
             QTextStream out(&pidFile);
-            out.setCodec("UTF-8");
+            out.setEncoding(QStringConverter::Utf8);
             out << QCoreApplication::applicationPid();
             pidFile.close();
         }
@@ -46,7 +46,7 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
         if (pidFile.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             QTextStream in(&pidFile);
-            in.setCodec("UTF-8");
+            in.setEncoding(QStringConverter::Utf8);
             runningPid = in.readLine().trimmed().toInt();
             pidFile.close();
         }

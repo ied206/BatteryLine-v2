@@ -50,5 +50,3 @@ int main(int argc, char *argv[])
     SystemHelper::eventLoopRunning(true);
     return app.exec();
 }
-
-
