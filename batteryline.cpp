@@ -63,7 +63,6 @@ BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *paren
     m_printBannerAct = nullptr;
     m_printHelpAct = nullptr;
     m_openHomepageAct = nullptr;
-    m_openLicenseAct = nullptr;
     m_openSettingAct = nullptr;
     m_printPowerInfoAct = nullptr;
     m_exitAct = nullptr;
@@ -132,7 +131,6 @@ BatteryLine::~BatteryLine()
     delete m_printBannerAct;
     delete m_printHelpAct;
     delete m_openHomepageAct;
-    delete m_openLicenseAct;
     delete m_openSettingAct;
     delete m_printPowerInfoAct;
     delete m_exitAct;
@@ -152,7 +150,6 @@ BatteryLine::~BatteryLine()
     m_printBannerAct = nullptr;
     m_printHelpAct = nullptr;
     m_openHomepageAct = nullptr;
-    m_openLicenseAct = nullptr;
     m_openSettingAct = nullptr;
     m_printPowerInfoAct = nullptr;
     m_exitAct = nullptr;
@@ -461,10 +458,6 @@ void BatteryLine::CreateTrayIcon()
     m_openHomepageAct = new QAction(tr("&Homepage"), this);
     connect(m_openHomepageAct, &QAction::triggered, this, &BatteryLine::TrayMenuHomepage);
     m_trayIconMenu->addAction(m_openHomepageAct);
-
-    m_openLicenseAct = new QAction(tr("&License"), this);
-    connect(m_openLicenseAct, &QAction::triggered, this, &BatteryLine::TrayMenuLicense);
-    m_trayIconMenu->addAction(m_openLicenseAct);
     m_trayIconMenu->addSeparator();
 
     m_openSettingAct = new QAction(tr("&Setting"), this);
@@ -514,14 +507,13 @@ void BatteryLine::TrayMenuPrintBanner()
     QString msgStr =
         QString("Joveler's BatteryLine v%1.%2 (%3, %4bit)\n"
                 "Show battery status as line in screen.\n\n"
-                "[Binary] %5\n"
-                "[Source] %6\n\n"
-                "Build %7")
+                "[Homepage] %5\n\n"
+                "Build %6")
         .arg(BL_MAJOR_VER)
         .arg(BL_MINOR_VER)
         .arg(SystemHelper::ArchOS())
         .arg(SystemHelper::ArchBit())
-        .arg(BL_WEB_BINARY, BL_WEB_SOURCE, BL_REL_DATE);
+        .arg(BL_WEB_SOURCE, BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -548,13 +540,7 @@ void BatteryLine::TrayMenuPrintHelp()
 void BatteryLine::TrayMenuHomepage()
 {
     // Open project homepage
-    QDesktopServices::openUrl(QUrl(BL_WEB_BINARY));
-}
-
-void BatteryLine::TrayMenuLicense()
-{
-    // Open GitHub repository's LICENSE page
-    QDesktopServices::openUrl(QUrl(BL_WEB_LICENSE));
+    QDesktopServices::openUrl(QUrl(BL_WEB_SOURCE));
 }
 
 void BatteryLine::TrayMenuSetting()

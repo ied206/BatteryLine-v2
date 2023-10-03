@@ -66,8 +66,8 @@ int NotificationWin::SendNotification(const uint id, const QString &summary, con
 #else
     nid.hIcon 		= (HICON) LoadImageW(hInst, MAKEINTRESOURCEW(IDI_MAINICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
 #endif
-    StringCchCopyW(nid.szTip, ARRAYSIZE(nid.szTip), (STRSAFE_LPCWSTR) summary.utf16());
-    StringCchCopyW(nid.szInfo, ARRAYSIZE(nid.szInfo), (STRSAFE_LPCWSTR) body.utf16());
+    StringCchCopyW(nid.szTip, ARRAYSIZE(nid.szTip), reinterpret_cast<STRSAFE_LPCWSTR>(summary.utf16()));
+    StringCchCopyW(nid.szInfo, ARRAYSIZE(nid.szInfo), reinterpret_cast<STRSAFE_LPCWSTR>(body.utf16()));
     nid.uVersion 	= NOTIFYICON_VERSION_4;
 
     Shell_NotifyIconW(NIM_SETVERSION, &nid);

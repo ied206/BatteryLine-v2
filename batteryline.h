@@ -47,7 +47,6 @@ private slots:
     void TrayMenuPrintBanner();
     void TrayMenuPrintHelp();
     void TrayMenuHomepage();
-    void TrayMenuLicense();
     void TrayMenuSetting();
     void TrayMenuPowerInfo();
     void TrayMenuExit();
@@ -97,7 +96,6 @@ private:
     QAction* m_printBannerAct;
     QAction* m_printHelpAct;
     QAction* m_openHomepageAct;
-    QAction* m_openLicenseAct;
     QAction* m_openSettingAct;
     QAction* m_printPowerInfoAct;
     QAction* m_exitAct;

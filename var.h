@@ -20,9 +20,7 @@
 #define BL_ORG_NAME         QString(RES_COMPANYNAME_STR)
 #define BL_ORG_DOMAIN       QString(RES_COMPANYDOMAIN_STR)
 #define BL_APP_NAME         QString(RES_FILEDESCRIPTION_STR)
-#define BL_WEB_BINARY		QString("https://ied206.github.io/BatteryLine")
 #define BL_WEB_SOURCE		QString("https://github.com/ied206/BatteryLine")
-#define BL_WEB_LICENSE      QString("https://github.com/ied206/BatteryLine/blob/master/LICENSE")
 
 #define BL_GUID             QString("f527817e-41bd-43a8-86ca-7a20575297ec")
 #define BL_LOCKID           QString(QDir::tempPath() + "/Joveler_BatteryLine_" + BL_GUID)
