@@ -71,10 +71,24 @@ bool PowerNotifyWin::Unregister()
 #endif
 
 #ifdef Q_OS_LINUX
-PowerNotify::PowerNotify()
+PowerNotifyLinux::PowerNotifyLinux()
 {
+}
+
+PowerNotifyLinux::~PowerNotifyLinux()
+{
+
+}
+
+bool PowerNotifyLinux::Register(void* handle)
+{
+    (void)handle;
+
     if (!QDBusConnection::systemBus().isConnected())
+    {
         SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(BL_PLATFORM));
+        return false;
+    }
 
     // Gather line power information
     QDBusInterface dBusUPower("org.freedesktop.UPower", "/org/freedesktop/UPower", "org.freedesktop.UPower", QDBusConnection::systemBus());
@@ -82,9 +96,8 @@ PowerNotify::PowerNotify()
     if (dBusReply.isValid() == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
-                                      .arg(BL_PLATFORM)
-                                      .arg(dBusReply.error().name())
-                                      .arg(dBusReply.error().message()));
+                                      .arg(BL_PLATFORM, dBusReply.error().name(), dBusReply.error().message()));
+        return false;
     }
 
     QList<QDBusObjectPath> devList = dBusReply.value();
@@ -109,10 +122,15 @@ PowerNotify::PowerNotify()
     for (int i = 0; i < m_LinePower.count(); i++)
         result &= dBusSystem.connect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
+    {
         SystemHelper::SystemError(QString("[%1] Cannot register D-Bus System Bus").arg(BL_PLATFORM));
+        return false;
+    }
+
+    return true;
 }
 
-PowerNotify::~PowerNotify()
+bool PowerNotifyLinux::Unregister()
 {
     // Unregister from power notification
     bool result;
@@ -121,11 +139,16 @@ PowerNotify::~PowerNotify()
     for (int i = 0; i < m_LinePower.count(); i++)
         result &= dBusSystem.connect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
+    {
         SystemHelper::SystemError(QString("[%1] Cannot unregister D-Bus System Bus").arg(BL_PLATFORM));
+        return false;
+    }
+
+    return true;
 }
 
 // (QString interfaceName, QVariantMap changedProperties, QStringList invalidatedProperties)
-void PowerNotify::BatteryInfoChanged(QString, QVariantMap changedProperties, QStringList)
+void PowerNotifyLinux::BatteryInfoChanged(QString, QVariantMap changedProperties, QStringList)
 {
     QVariant batteryLevel = changedProperties["Percentage"]; // double
     QVariant batteryState = changedProperties["State"] ;// uint
@@ -135,10 +158,10 @@ void PowerNotify::BatteryInfoChanged(QString, QVariantMap changedProperties, QSt
 }
 
 // (QString interfaceName, QVariantMap changedProperties, QStringList invalidatedProperties)
-void PowerNotify::ACLineInfoChanged(QString, QVariantMap changedProperties, QStringList)
+void PowerNotifyLinux::ACLineInfoChanged(QString, QVariantMap changedProperties, QStringList)
 {
     QVariant acLineOnline = changedProperties["Online"];
-    if (acLineOnline.isValid())  // AC Adaptor has been plugged out or in
+    if (acLineOnline.isValid()) // AC Adaptor has been plugged out or in
         emit RedrawSignal();
 }
 #endif

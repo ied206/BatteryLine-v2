@@ -59,10 +59,10 @@ public:
     virtual bool Register(void* handle);
     virtual bool Unregister();
 
-    int SendNotification(const QString &summary, const QString &body);
+    virtual int SendNotification(const uint id, const QString &summary, const QString &body, const uint win_flags = 0, const uint win_infoFlags = 0);
 
 private:
-    void DeleteNotification(const uint id);
+    virtual void DeleteNotification(const uint id);
 };
 #endif
 

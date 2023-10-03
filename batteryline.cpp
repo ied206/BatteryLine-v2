@@ -42,15 +42,13 @@ BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *paren
     m_powerStat = PowerStatus::CreateInstance();
     m_powerNotify = PowerNotify::CreateInstance();
     m_notification = Notification::CreateInstance();
+    void* windowHandle = nullptr;
 #ifdef Q_OS_WIN
-    m_powerStat->Register(reinterpret_cast<void*>(m_hWnd));
-    m_powerNotify->Register(reinterpret_cast<void*>(m_hWnd));
-    m_notification->Register(reinterpret_cast<void*>(m_hWnd));
-#elif defined(Q_OS_LINUX)
-    m_powerStat->Register(nullptr);
-    m_powerNotify->Register(nullptr);
-    m_notification->Register(nullptr);
+    windowHandle = reinterpret_cast<void*>(m_hWnd);
 #endif
+    m_powerStat->Register(windowHandle);
+    m_powerNotify->Register(windowHandle);
+    m_notification->Register(windowHandle);
 
     // Connect Signal with m_powerNotify
     connect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
@@ -112,6 +110,11 @@ BatteryLine::~BatteryLine()
     // Turn off QTimer
     m_timer->stop();
     disconnect(m_timer, &QTimer::timeout, this, &BatteryLine::TimerTimeout);
+
+    // Unregister platform class instances
+    m_powerStat->Unregister();
+    m_powerNotify->Unregister();
+    m_notification->Unregister();
 
     // Delete instances
     delete ui;

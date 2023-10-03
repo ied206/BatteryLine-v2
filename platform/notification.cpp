@@ -89,18 +89,38 @@ void NotificationWin::DeleteNotification(const uint id)
 #endif
 
 #ifdef Q_OS_LINUX
-Notification::Notification()
+NotificationLinux::NotificationLinux()
 {
+
+}
+
+NotificationLinux::~NotificationLinux()
+{
+}
+
+bool NotificationLinux::Register(void* handle)
+{
+    (void)handle;
+
     if (!QDBusConnection::sessionBus().isConnected())
+    {
         SystemHelper::SystemError("[Linux] Cannot connect to D-Bus Session bus");
+        return false;
+    }
+
+    return true;
 }
 
-Notification::~Notification()
+bool NotificationLinux::Unregister()
 {
+    return true;
 }
 
-int Notification::SendNotification(const QString &summary, const QString &body)
+int NotificationLinux::SendNotification(const uint id, const QString &summary, const QString &body, const uint win_flags, const uint win_infoFlags)
 {
+    (void)id;
+    (void)win_flags;
+    (void)win_infoFlags;
     // https://developer.gnome.org/notification-spec/
     // http://www.galago-project.org/specs/notification/0.9/x408.html
     // $ qdbus org.freedesktop.Notifications /org/freedesktop/Notifications
@@ -125,7 +145,7 @@ int Notification::SendNotification(const QString &summary, const QString &body)
     return dBusReturn.first().toUInt();
 }
 
-void Notification::DeleteNotification(const uint id)
+void NotificationLinux::DeleteNotification(const uint id)
 {
     QDBusConnection dBusNotify = QDBusConnection::connectToBus(QDBusConnection::SessionBus, "org.freedesktop.Notifications");
     QDBusMessage dBusReqeust = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "CloseNotification");

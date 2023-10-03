@@ -36,6 +36,7 @@ PowerStatusWin::~PowerStatusWin()
 bool PowerStatusWin::Register(void* handle)
 {
     (void)handle;
+    Update();
     return true;
 }
 
@@ -83,8 +84,23 @@ void PowerStatusWin::Update()
 #ifdef Q_OS_LINUX
 PowerStatusLinux::PowerStatusLinux()
 {
+
+}
+
+PowerStatusLinux::~PowerStatusLinux()
+{
+
+}
+
+bool PowerStatusLinux::Register(void* handle)
+{
+    (void)handle;
+
     if (!QDBusConnection::systemBus().isConnected())
+    {
         SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(BL_PLATFORM));
+        return false;
+    }
 
     // Composite Battery which is virtualized
     m_CompositeBattery = new QDBusInterface("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
@@ -95,9 +111,8 @@ PowerStatusLinux::PowerStatusLinux()
     if (dBusReply.isValid() == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
-                                      .arg(BL_PLATFORM)
-                                      .arg(dBusReply.error().name())
-                                      .arg(dBusReply.error().message()));
+                                      .arg(BL_PLATFORM, dBusReply.error().name(), dBusReply.error().message()));
+        return false;
     }
 
     QList<QDBusObjectPath> devList = dBusReply.value();
@@ -105,7 +120,7 @@ PowerStatusLinux::PowerStatusLinux()
     {
         QDBusInterface dBusDeviceType("org.freedesktop.UPower", devList[i].path(), "org.freedesktop.UPower.Device", QDBusConnection::systemBus());
         QVariant type = dBusDeviceType.property("Type");
-        switch(type.toUInt())
+        switch (type.toUInt())
         {
         case 1: // Line Power
             m_LinePower.append(new QDBusInterface("org.freedesktop.UPower", devList[i].path(), "org.freedesktop.UPower.Device", QDBusConnection::systemBus()));
@@ -118,9 +133,11 @@ PowerStatusLinux::PowerStatusLinux()
     }
 
     Update();
+
+    return true;
 }
 
-PowerStatusLinux::~PowerStatusLinux()
+bool PowerStatusLinux::Unregister()
 {
     delete m_CompositeBattery;
     while (m_LinePower.isEmpty() == false)

@@ -14,6 +14,9 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    // sudo apt install libxcb-cursor0
+    // qt.qpa.plugin: From 6.5.0, xcb-cursor0 or libxcb-cursor0 is needed to load the Qt xcb platform plugin.
+    // qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
 #ifdef Q_OS_LINUX
     // Qt 5.7 does not have gtk theme anymore, so in that case, fallback to Fusion theme
     QStringList list = QStyleFactory::keys();
