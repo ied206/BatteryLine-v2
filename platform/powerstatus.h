@@ -9,7 +9,7 @@
 
 /*
  * Windows : Utilize SYSTEM_POWER_STATUS and GetSystemPowerStatus API
- * macOS   : Sadly, I don't have Apple device to implement and test, please contribute!
+ * macOS   : TODO (Is top-level window in macOS possible?)
  * Linux   : Utilize UPower, using D-Bus System Bus
  */
 

@@ -148,6 +148,7 @@ bool PowerStatusLinux::Unregister()
 
     m_CompositeBattery = nullptr;
     m_LinePower.clear();
+    return true;
 }
 
 // Return true if success
