@@ -2,13 +2,7 @@
 
 BatteryLine shows system's battery status as line in screen.
 
-Written in Qt 5, for Windows and Linux.
-
-## Version
-
-Latest version is v2.0.
-
-v1.x can be found in [BatteryLine-Legacy](https://github.com/ied206/BatteryLine-Legacy) repository.
+Written in Qt 6, for Windows and Linux.
 
 ## Requirement
 
@@ -16,40 +10,44 @@ v1.x can be found in [BatteryLine-Legacy](https://github.com/ied206/BatteryLine-
 
 Dependency                                  | Version   | When
 ------------------------------------------- | ----------|-------
-[Qt](https://www.qt.io/)                    | >= 5.6    | Compile
+[Qt](https://www.qt.io/)                    | >= 6.0    | Compile
 
 ### Per OS : Windows
 
-Requirement                                 | Required  | When
-------------------------------------------- | ----------|-----
-Windows                                     | >= Vista  | Runtime
+Requirement                                 | Required    | When
+------------------------------------------- | ------------|-----
+Windows                                     | >= 10 v1809 | Runtime
 
 ### Per OS : Linux
 
 Requirement                                 | Required | When
 ------------------------------------------- | ---------|------
-[Snorenotify](https://github.com/KDE/snorenotify) |  | Compile
 [UPower](https://upower.freedesktop.org/)   | >= 0.99  | Runtime
 [D-Bus](https://dbus.freedesktop.org/)      |          | Runtime
+[libxcb-cursor0](https://packages.ubuntu.com/search?keywords=libxcb-cursor0)   |      | Runtime
 
 ## Tested Environment
 
-This program was developed and tested under:
+This program has been developed and tested under:
 
-- Qt Creator 4.6
-- Qt 5.9.3
+- Qt Creator 11.0.3
+- Qt 6.5.3
 
 ### Windows
 
-- Windows 10 v1709
-- Visual Studio 2017
+- Windows 10 v22H2
+- Visual Studio 2019
 
 ### Linux
 
-- Linux Mint 18
-- Linux Mint 18.1
-- GCC 5.3
+- Linux Mint 21.2
+- GCC 11.4.0
 
 ## License
 
-MIT License.
+BatteryLine is licensed under the MIT License.
+
+## Legacy Versions
+
+v1.x can be found in [BatteryLine-v1](https://github.com/ied206/BatteryLine-v1) repository.
+
