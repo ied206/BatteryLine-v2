@@ -7,7 +7,6 @@
 
 #include <QTimer>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QUrl>
@@ -16,13 +15,14 @@
 #include <QGuiApplication>
 
 
-BatteryLine::BatteryLine(QWidget *parent) :
+BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *parent):
     QWidget(parent),
     ui(new Ui::BatteryLine)
 {
     ui->setupUi(this);
 
     // Layered Window + Always On Top
+    // In Windows, windows would have WS_EX_TOPMOST (0x00000008) and WS_TOPMOST | WS_CLIPCHILDREN | WS_CLIPSIBLINGS (0x86000000) styles.
     // In Cinnamon/XOrg, window which has Qt::X11BypassWindowManagerHint cannot be parent of other window.
     setEnabled(false);
     setFocusPolicy(Qt::NoFocus);
@@ -30,50 +30,57 @@ BatteryLine::BatteryLine(QWidget *parent) :
     setWindowFlags(Qt::Window | Qt::WindowStaysOnTopHint | Qt::X11BypassWindowManagerHint | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
 
 #ifdef Q_OS_WIN
-    // Give WS_EX_NOACTIVE property
-    hWnd = reinterpret_cast<HWND>(this->winId());
-    LONG dwExStyle = GetWindowLong(hWnd, GWL_EXSTYLE);
-    dwExStyle |= WS_EX_TOPMOST | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
-    SetWindowLong(hWnd, GWL_EXSTYLE, dwExStyle);
+    // Set Win32 Window Style and Extended Window Style directly, regardless of QWidget::setWindowFlags()
+    m_hWnd = reinterpret_cast<HWND>(this->winId());
+    // LONG dwExStyle = GetWindowLong(m_hWnd, GWL_EXSTYLE); // WS_EX_TOPMOST
+    // dwExStyle |= WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED;
+    SetWindowLongW(m_hWnd, GWL_STYLE, static_cast<LONG>(WS_POPUP));
+    SetWindowLongW(m_hWnd, GWL_EXSTYLE, static_cast<LONG>(WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_LAYERED));
 #endif
-
-    // Program Info
-    QCoreApplication::setOrganizationName(BL_ORG_NAME);
-    QCoreApplication::setOrganizationDomain(BL_ORG_DOMAIN);
-    QCoreApplication::setApplicationName(BL_APP_NAME);
 
     // Init Member Classes
-    m_powerStat = new PowerStatus();
+    m_powerStat = PowerStatus::CreateInstance();
+    m_powerNotify = PowerNotify::CreateInstance();
+    m_notification = Notification::CreateInstance();
+    void* windowHandle = nullptr;
 #ifdef Q_OS_WIN
-    m_powerNotify = new PowerNotify(hWnd);
+    windowHandle = reinterpret_cast<void*>(m_hWnd);
 #endif
-#ifdef Q_OS_LINUX
-    m_powerNotify = new PowerNotify();
-#endif
+    m_powerStat->Register(windowHandle);
+    m_powerNotify->Register(windowHandle);
+    m_notification->Register(windowHandle);
+
     // Connect Signal with m_powerNotify
     connect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
 
     // Init Member Variables - Setting and Context Menu
     m_setting = nullptr;
+    m_settingLock = false;
 
-    trayIconMenu = nullptr;
-    trayIcon = nullptr;
+    m_trayIconMenu = nullptr;
+    m_trayIcon = nullptr;
 
-    printBannerAct = nullptr;
-    printHelpAct = nullptr;
-    openHomepageAct = nullptr;
-    openLicenseAct = nullptr;
-    openSettingAct = nullptr;
-    printPowerInfoAct = nullptr;
-    exitAct = nullptr;
+    m_printBannerAct = nullptr;
+    m_printHelpAct = nullptr;
+    m_openHomepageAct = nullptr;
+    m_openSettingAct = nullptr;
+    m_printPowerInfoAct = nullptr;
+    m_exitAct = nullptr;
+
+    // Help message will be used in PrintHelpBanner
+    m_helpText = helpText;
 
     // Connect signal with screen change
-    QScreen* screen = QGuiApplication::primaryScreen();
-    connect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
-    // connect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
-    // connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
-    // connect(QApplication::desktop(), &QDesktopWidget::resized, this, &BatteryLine::ScreenResized);
-    // connect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
+    m_screen = QGuiApplication::primaryScreen();
+    ConnectSignals(nullptr);
+    ConnectSignals(m_screen);
+
+    // Set a timer
+    // Occasionally some fullscreen DirectX app hides window of BatteryLine. (e.g. Edge)
+    // To mitigate this problem, call DrawLine() with QTimer regardless of power notification
+    m_timer = new QTimer();
+    connect(m_timer, &QTimer::timeout, this, &BatteryLine::TimerTimeout);
+    m_timer->start(60 * 1000); // Per 1 minute
 
     // Tray Icon
     CreateTrayIcon();
@@ -83,66 +90,88 @@ BatteryLine::BatteryLine(QWidget *parent) :
     memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
     ReadSettings();
 
-    // Set Window Size and Position, Colorr
+    // Notification
+    m_muteNotifcation = mute;
+
+    // Set Window Size and Position, Color
     DrawLine();
 }
 
 BatteryLine::~BatteryLine()
 {
     // Connect signal with screen change
-    QScreen* screen = QGuiApplication::primaryScreen();
-    disconnect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
-    /*
-    disconnect(QApplication::desktop(), &QDesktopWidget::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
-    disconnect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &BatteryLine::ScreenCountChanged);
-    disconnect(QApplication::desktop(), &QDesktopWidget::resized, this, &BatteryLine::ScreenResized);
-    disconnect(QApplication::desktop(), &QDesktopWidget::workAreaResized, this, &BatteryLine::ScreenWorkAreaResized);
-    */
+    DisconnectSignals(nullptr);
+    DisconnectSignals(m_screen);
 
     // Disconnect Signal with m_powerNotify
     disconnect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
 
+    // Turn off QTimer
+    m_timer->stop();
+    disconnect(m_timer, &QTimer::timeout, this, &BatteryLine::TimerTimeout);
+
+    // Unregister platform class instances
+    m_powerStat->Unregister();
+    m_powerNotify->Unregister();
+    m_notification->Unregister();
+
+    // Delete instances
     delete ui;
     delete m_powerStat;
-
     delete m_powerNotify;
+    delete m_notification;
+
+    delete m_timer;
 
     delete m_setting;
 
-    delete trayIconMenu;
-    delete trayIcon;
+    delete m_trayIconMenu;
+    delete m_trayIcon;
 
-    delete printBannerAct;
-    delete printHelpAct;
-    delete openHomepageAct;
-    delete openLicenseAct;
-    delete openSettingAct;
-    delete printPowerInfoAct;
-    delete exitAct;
+    delete m_printBannerAct;
+    delete m_printHelpAct;
+    delete m_openHomepageAct;
+    delete m_openSettingAct;
+    delete m_printPowerInfoAct;
+    delete m_exitAct;
 
+    // Set member variables to nullptr
     ui = nullptr;
     m_powerStat = nullptr;
-    m_powerNotify = nullptr;
+    m_powerNotify = nullptr;    
+
+    m_timer = nullptr;
 
     m_setting = nullptr;
 
-    trayIconMenu = nullptr;
-    trayIcon = nullptr;
+    m_trayIconMenu = nullptr;
+    m_trayIcon = nullptr;
 
-    printBannerAct = nullptr;
-    printHelpAct = nullptr;
-    openHomepageAct = nullptr;
-    openLicenseAct = nullptr;
-    openSettingAct = nullptr;
-    printPowerInfoAct = nullptr;
-    exitAct = nullptr;
+    m_printBannerAct = nullptr;
+    m_printHelpAct = nullptr;
+    m_openHomepageAct = nullptr;
+    m_openSettingAct = nullptr;
+    m_printPowerInfoAct = nullptr;
+    m_exitAct = nullptr;
 }
 
 void BatteryLine::DrawLine()
 {
     m_powerStat->Update();
-    if (m_powerStat->m_BatteryExist == false)
-        SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
+    if (!m_powerStat->m_BatteryExist)
+    {
+        if (m_muteNotifcation)
+        {
+            if (SystemHelper::setEventLoopRunning())
+                exit(1);
+            else
+                QCoreApplication::exit(1);
+        }
+        else
+        {
+            SystemHelper::SystemError(tr("There is no battery in this system.\nPlease attach battery and run again."));
+        }
+    }
     SetColor();
     SetWindowSizePos();
 }
@@ -162,12 +191,13 @@ void BatteryLine::SetWindowSizePos()
     else // Custom Monitor
     {
         QList<QScreen*> screens = QGuiApplication::screens();
-        if (m_option.customMonitor < 0 || screens.size() <= m_option.customMonitor)
+        if (0 <= m_option.customMonitor || m_option.customMonitor <= screens.size())
             targetScreen = screens.at(m_option.customMonitor);
         else // Silently fallback to primary monitor
             targetScreen = QGuiApplication::primaryScreen();
     }
 
+    // m_screen = targetScreen;
     screenWorkRect = targetScreen->availableGeometry();
     screenFullRect = targetScreen->geometry();
 
@@ -240,7 +270,7 @@ void BatteryLine::SetWindowSizePos()
     updateGeometry();
 
 #ifdef _DEBUG
-    qDebug() << QString("[Monitor]");
+    qDebug() << "[Monitor]";
     qDebug() << QString("Displaying on monitor %1").arg(m_option.customMonitor);
     qDebug() << QString("Base Coordinate        : (%1, %2)").arg(screenFullRect.left()).arg(screenFullRect.top());
     qDebug() << QString("Screen Resolution      : (%1, %2)").arg(screenFullRect.width()).arg(screenFullRect.height());
@@ -250,10 +280,7 @@ void BatteryLine::SetWindowSizePos()
 #endif
 
 #ifdef Q_OS_WIN
-    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    if(this->isActiveWindow() == false) {
-        this->raise();
-    }
+    SetWindowPos(m_hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 #endif
 }
 
@@ -265,9 +292,13 @@ void BatteryLine::SetColor()
     setWindowOpacity(static_cast<qreal>(m_option.transparency) / 255);
 
     if (m_option.showCharge == true && m_powerStat->m_BatteryCharging == true)  // Charging, and show charge color option set
+    {
         color = m_option.chargeColor;
+    }
     else if (m_powerStat->m_BatteryFull == true) // Not Charging, because battery is full
+    {
         color = m_option.fullColor; // Even though BatteryLifePercent is not 100, consider it as 100
+    }
     else if (m_option.showCharge == false || m_powerStat->m_ACLineStatus == false) // Not Charging, running on battery
     {
         color = m_option.defaultColor;
@@ -284,41 +315,119 @@ void BatteryLine::SetColor()
         }
     }
     else
+    {
         SystemHelper::SystemError("[General] Invalid battery status data");
+    }
+
     color.setAlpha(255);
 
-    palette.setColor(QPalette::Background, color);
+    palette.setColor(QPalette::Window, color);
     this->setPalette(palette);
 }
 
-// Obsolete QDesktopWidget slots
-void BatteryLine::PrimaryScreenChanged()
+// Manage QGuiApplication and QScreen Signals
+void BatteryLine::ConnectSignals(QScreen* screen)
 {
+    if (screen == nullptr)
+    { // QGuiApplication
+        QGuiApplication* app = static_cast<QGuiApplication*>(QGuiApplication::instance());
+        connect(app, &QGuiApplication::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
+        connect(app, &QGuiApplication::screenAdded, this, &BatteryLine::ScreenAdded);
+        connect(app, &QGuiApplication::screenRemoved, this, &BatteryLine::ScreenRemoved);
+    }
+    else
+    { // QScreen
+        connect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
+        connect(screen, &QScreen::geometryChanged, this, &BatteryLine::GeometryChanged);
+    }
+}
+
+void BatteryLine::DisconnectSignals(QScreen* screen)
+{
+    if (screen == nullptr)
+    { // QGuiApplication
+        QGuiApplication* app = static_cast<QGuiApplication*>(QGuiApplication::instance());
+        disconnect(app, &QGuiApplication::primaryScreenChanged, this, &BatteryLine::PrimaryScreenChanged);
+        disconnect(app, &QGuiApplication::screenAdded, this, &BatteryLine::ScreenAdded);
+        disconnect(app, &QGuiApplication::screenRemoved, this, &BatteryLine::ScreenRemoved);
+    }
+    else
+    { // QScreen
+        disconnect(screen, &QScreen::availableGeometryChanged, this, &BatteryLine::AvailableGeometryChanged);
+        disconnect(screen, &QScreen::geometryChanged, this, &BatteryLine::GeometryChanged);
+    }
+}
+
+void BatteryLine::ChangeQScreenToSignal(QScreen* newScreen)
+{
+    QScreen* oldScreen = m_screen;
+    if (oldScreen == nullptr || QString::compare(oldScreen->name(), newScreen->name(), Qt::CaseSensitive) != 0)
+    {
+        m_screen = newScreen;
+        DisconnectSignals(oldScreen);
+        ConnectSignals(newScreen);
+    }
+}
+
+// QGuiApplication slots
+void BatteryLine::PrimaryScreenChanged(QScreen* screen)
+{
+    ChangeQScreenToSignal(screen);
+#ifdef _DEBUG
+    qDebug() << "[SLOT] PrimaryScreenChanged";
+    qDebug() << "";
+#endif
     DrawLine();
 }
 
-void BatteryLine::ScreenCountChanged(int newCount)
+void BatteryLine::ScreenAdded(QScreen* screen)
 {
-    (void) newCount;
+    ChangeQScreenToSignal(screen);
+#ifdef _DEBUG
+    qDebug() << "[SLOT] ScreenAdded";
+    qDebug() << "";
+#endif
     DrawLine();
 }
 
-void BatteryLine::ScreenResized(int screen)
+void BatteryLine::ScreenRemoved(QScreen* screen)
 {
-    (void) screen;
-    DrawLine();
-}
-
-void BatteryLine::ScreenWorkAreaResized(int screen)
-{
-    (void) screen;
+    ChangeQScreenToSignal(screen);
+#ifdef _DEBUG
+    qDebug() << "[SLOT] ScreenRemoved";
+    qDebug() << "";
+#endif
     DrawLine();
 }
 
 // QScreen slots
 void BatteryLine::AvailableGeometryChanged(const QRect &geometry)
 {
-    (void) geometry; // Remove unsued parameter warning
+    Q_UNUSED(geometry);
+#ifdef _DEBUG
+    qDebug() << "[SLOT] AvailableGeometryChanged";
+    qDebug() << "";
+#endif
+    DrawLine();
+}
+
+void BatteryLine::GeometryChanged(const QRect &geometry)
+{
+    Q_UNUSED(geometry);
+#ifdef _DEBUG
+    qDebug() << "[SLOT] GeometryChanged";
+    qDebug() << "";
+#endif
+    DrawLine();
+}
+
+// QTimer slots
+void BatteryLine::TimerTimeout()
+{
+#ifdef _DEBUG
+    qDebug() << "[D] SLOT: TimerTimeout";
+    qDebug() << "";
+#endif
     DrawLine();
 }
 
@@ -326,53 +435,49 @@ void BatteryLine::AvailableGeometryChanged(const QRect &geometry)
 void BatteryLine::CreateTrayIcon()
 {
     // Init
-    trayIconMenu = new QMenu(this);
-    trayIcon = new QSystemTrayIcon(this);
-    trayIcon->setContextMenu(trayIconMenu);
+    m_trayIconMenu = new QMenu(this);
+    m_trayIcon = new QSystemTrayIcon(this);
+    m_trayIcon->setContextMenu(m_trayIconMenu);
 
     // Icon
     QIcon icon = QIcon(BL_ICON);
-    trayIcon->setIcon(icon);
+    m_trayIcon->setIcon(icon);
     setWindowIcon(icon);
 
     // Context Menu
-    printBannerAct = new QAction(tr("A&bout"), this);
-    printBannerAct->setIcon(icon);
-    connect(printBannerAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintBanner);
-    trayIconMenu->addAction(printBannerAct);
+    m_printBannerAct = new QAction(tr("A&bout"), this);
+    m_printBannerAct->setIcon(icon);
+    connect(m_printBannerAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintBanner);
+    m_trayIconMenu->addAction(m_printBannerAct);
 
-    printHelpAct = new QAction(tr("&Help"), this);
-    connect(printHelpAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintHelp);
-    trayIconMenu->addAction(printHelpAct);
-    trayIconMenu->addSeparator();
+    m_printHelpAct = new QAction(tr("&Help"), this);
+    connect(m_printHelpAct, &QAction::triggered, this, &BatteryLine::TrayMenuPrintHelp);
+    m_trayIconMenu->addAction(m_printHelpAct);
+    m_trayIconMenu->addSeparator();
 
-    openHomepageAct = new QAction(tr("&Homepage"), this);
-    connect(openHomepageAct, &QAction::triggered, this, &BatteryLine::TrayMenuHomepage);
-    trayIconMenu->addAction(openHomepageAct);
+    m_openHomepageAct = new QAction(tr("&Homepage"), this);
+    connect(m_openHomepageAct, &QAction::triggered, this, &BatteryLine::TrayMenuHomepage);
+    m_trayIconMenu->addAction(m_openHomepageAct);
+    m_trayIconMenu->addSeparator();
 
-    openLicenseAct = new QAction(tr("&License"), this);
-    connect(openLicenseAct, &QAction::triggered, this, &BatteryLine::TrayMenuLicense);
-    trayIconMenu->addAction(openLicenseAct);
-    trayIconMenu->addSeparator();
+    m_openSettingAct = new QAction(tr("&Setting"), this);
+    connect(m_openSettingAct, &QAction::triggered, this, &BatteryLine::TrayMenuSetting);
+    m_trayIconMenu->addAction(m_openSettingAct);
 
-    openSettingAct = new QAction(tr("&Setting"), this);
-    connect(openSettingAct, &QAction::triggered, this, &BatteryLine::TrayMenuSetting);
-    trayIconMenu->addAction(openSettingAct);
+    m_printPowerInfoAct = new QAction(tr("&Power Info"), this);
+    connect(m_printPowerInfoAct, &QAction::triggered, this, &BatteryLine::TrayMenuPowerInfo);
+    m_trayIconMenu->addAction(m_printPowerInfoAct);
+    m_trayIconMenu->addSeparator();
 
-    printPowerInfoAct = new QAction(tr("&Power Info"), this);
-    connect(printPowerInfoAct, &QAction::triggered, this, &BatteryLine::TrayMenuPowerInfo);
-    trayIconMenu->addAction(printPowerInfoAct);
-    trayIconMenu->addSeparator();
-
-    exitAct = new QAction(tr("E&xit"), this);
-    connect(exitAct, &QAction::triggered, this, &BatteryLine::TrayMenuExit);
-    trayIconMenu->addAction(exitAct);
+    m_exitAct = new QAction(tr("E&xit"), this);
+    connect(m_exitAct, &QAction::triggered, this, &BatteryLine::TrayMenuExit);
+    m_trayIconMenu->addAction(m_exitAct);
 
     // Event Handler
-    connect(trayIcon, &QSystemTrayIcon::activated, this, &BatteryLine::TrayIconClicked);
+    connect(m_trayIcon, &QSystemTrayIcon::activated, this, &BatteryLine::TrayIconClicked);
 
     // Show
-    trayIcon->show();
+    m_trayIcon->show();
 }
 
 void BatteryLine::TrayIconClicked(QSystemTrayIcon::ActivationReason reason)
@@ -399,23 +504,12 @@ void BatteryLine::TrayMenuExit()
 
 void BatteryLine::TrayMenuPrintBanner()
 {
-    QString msgStr, webBinary, webSource;
-
-    webBinary = BL_WEB_BINARY;
-    webSource = BL_WEB_SOURCE;
-    msgStr = QString("Joveler's BatteryLine v%1.%2 (%3bit)\n"
-                  "Show battery status as line in screen.\n\n"
-                  "[Binary] %4\n"
-                  "[Source] %5\n\n"
-                  "Build %6%7%8")
-            .arg(BL_MAJOR_VER)
-            .arg(BL_MINOR_VER)
-            .arg(SystemHelper::WhatBitOS())
-            .arg(webBinary)
-            .arg(webSource)
-            .arg(SystemHelper::CompileYear(), 4, 10, QChar('0'))
-            .arg(SystemHelper::CompileMonth(), 2, 10, QChar('0'))
-            .arg(SystemHelper::CompileDay(), 2, 10, QChar('0'));
+    QString msgStr =
+        QString("Joveler's BatteryLine v%1 (%2, %3)\n"
+                "Show battery status as line in screen.\n\n"
+                "[Homepage] %4\n\n"
+                "Build %5")
+            .arg(BL_VER_INST.toString(), SystemHelper::OSName(), SystemHelper::ProcArch(), BL_WEB_SOURCE, BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
@@ -429,22 +523,10 @@ void BatteryLine::TrayMenuPrintBanner()
 
 void BatteryLine::TrayMenuPrintHelp()
 {
-    QString msgStr, webBinary, webSource;
-
-    webBinary = BL_WEB_BINARY;
-    webSource = BL_WEB_SOURCE;
-    msgStr = QString("[BatteryLine Help Message]\n"
-                  "Show battery status as line in screen.\n\n"
-                  "[Command Line Option]\n"
-                 "-q : Launch this program without notification.\n"
-                 "-h : Print this help message and exit.\n\n"
-                 "[Setting]\n"
-                 "You can edit BatteryLine's setting in BatteryLine.ini.");
-
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setWindowTitle(BL_APP_NAME);
-    msgBox.setText(msgStr);
+    msgBox.setText(QString(m_helpText));
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
@@ -454,33 +536,33 @@ void BatteryLine::TrayMenuPrintHelp()
 void BatteryLine::TrayMenuHomepage()
 {
     // Open project homepage
-    QDesktopServices::openUrl(QUrl(BL_WEB_BINARY));
-}
-
-void BatteryLine::TrayMenuLicense()
-{
-    // Open GitHub repository's LICENSE page
-    QDesktopServices::openUrl(QUrl(BL_WEB_LICENSE));
+    QDesktopServices::openUrl(QUrl(BL_WEB_SOURCE));
 }
 
 void BatteryLine::TrayMenuSetting()
 {
-    SettingDialog dialog(m_option, DefaultSettings(), nullptr);
-    connect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
-    connect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
-    connect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
-    connect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
-    dialog.exec();
-    disconnect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
-    disconnect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
-    disconnect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
-    disconnect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
+    if (!m_settingLock)
+    {
+        m_settingLock = true;
+
+        SettingDialog dialog(m_option, DefaultSettings(), nullptr);
+        connect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
+        connect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
+        connect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
+        connect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
+        dialog.exec();
+        disconnect(&dialog, &SettingDialog::SignalGeneral, this, &BatteryLine::SettingSlotGeneral);
+        disconnect(&dialog, &SettingDialog::SignalBasicColor, this, &BatteryLine::SettingSlotBasicColor);
+        disconnect(&dialog, &SettingDialog::SignalCustomColor, this, &BatteryLine::SettingSlotCustomColor);
+        disconnect(&dialog, &SettingDialog::SignalDefaultSetting, this, &BatteryLine::SettingSlotDefault);
+
+        m_settingLock = false;
+    }
 }
 
 void BatteryLine::TrayMenuPowerInfo()
 {
     m_powerStat->Update();
-
     QString msgAcPower, msgCharge, msgFull;
     if (m_powerStat->m_ACLineStatus == true)
         msgAcPower = tr("AC");
@@ -499,8 +581,7 @@ void BatteryLine::TrayMenuPowerInfo()
     msgFull = QString("Power Source : %1\n"
                      "Battery Status : %2\n"
                      "Battery Percent : %3%\n")
-            .arg(msgAcPower)
-            .arg(msgCharge)
+            .arg(msgAcPower, msgCharge)
             .arg(m_powerStat->m_BatteryLevel);
 
     QMessageBox msgBox;
@@ -708,7 +789,7 @@ BL_OPTION BatteryLine::DefaultSettings()
 
 #ifdef Q_OS_WIN
 // http://doc.qt.io/qt-5/qwidget.html#nativeEvent
-bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *result)
+bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, qintptr *result)
 {
     if (eventType == "windows_generic_MSG")
     {
@@ -718,16 +799,18 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
         {
         case WM_POWERBROADCAST: // Power source changed, battery level dropped
 #ifdef _DEBUG
-            qDebug() << "WM_POWERBROADCAST";
+            qDebug() << "[WM] WM_POWERBROADCAST";
+            qDebug() << "";
 #endif
             DrawLine();
             break;
-            /*
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
-            qDebug() << "WM_DISPLAYCHANGE";
+#ifdef _DEBUG
+            qDebug() << "[WM] WM_DISPLAYCHANGE";
+            qDebug() << "";
+#endif
             DrawLine();
             break;
-            */
         default:
             break;
         }
@@ -736,4 +819,5 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, long *
     return QWidget::nativeEvent(eventType, message, result);
 }
 #endif
+
 

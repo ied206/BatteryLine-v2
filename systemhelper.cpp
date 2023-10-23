@@ -1,12 +1,16 @@
+#include "var.h"
 #include "systemhelper.h"
 
 #include <QMessageBox>
 #include <QCoreApplication>
+#include <QIcon>
 #include <QDebug>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cstdint>
+#include <QSysInfo>
 
 bool SystemHelper::m_eventLoopRunning = false;
 
@@ -15,9 +19,25 @@ SystemHelper::SystemHelper()
     m_eventLoopRunning = false;
 }
 
-int SystemHelper::WhatBitOS()
+QString SystemHelper::OSName()
 {
-    return sizeof(void*) * 8;
+#ifdef Q_OS_WIN
+    return "Windows";
+#elif defined(Q_OS_LINUX)
+    return "Linux";
+#else
+    return QSysInfo::productType();
+#endif
+}
+
+QString SystemHelper::OSArch()
+{
+    return QSysInfo::currentCpuArchitecture();
+}
+
+QString SystemHelper::ProcArch()
+{
+    return QSysInfo::buildCpuArchitecture();
 }
 
 // Linux-Style Hex Dump
@@ -124,20 +144,39 @@ int SystemHelper::CompileDay()
     return atoi(stmp);
 }
 
-void SystemHelper::SystemError(const QString errorMsg)
+
+void SystemHelper::SystemWarning(const QString& warnMsg)
 {
     QMessageBox msgBox;
     msgBox.setWindowTitle("BatteryLine Error");
+    msgBox.setWindowIcon(QIcon(BL_ICON));
+    msgBox.setText(warnMsg);
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setStandardButtons(QMessageBox::Ok);
+    msgBox.setDefaultButton(QMessageBox::Ok);
+    msgBox.exec();
+}
+
+void SystemHelper::SystemError(const QString& errorMsg)
+{
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("BatteryLine Error");
+    msgBox.setWindowIcon(QIcon(BL_ICON));
     msgBox.setText(errorMsg);
     msgBox.setIcon(QMessageBox::Critical);
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
     msgBox.exec();
 
+    QtExit(1);
+}
+
+void SystemHelper::QtExit(int code)
+{
     if (SystemHelper::m_eventLoopRunning)
-        QCoreApplication::exit(1);
+        QCoreApplication::exit(code);
     else
-        exit(1);
+        exit(code);
 }
 
 void SystemHelper::eventLoopRunning(bool value)

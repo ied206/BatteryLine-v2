@@ -10,13 +10,13 @@ class SingleInstance : public QObject
     Q_OBJECT
 
 public:
-    SingleInstance(const QString lockFile, const QApplication &app);
+    SingleInstance(const QString lockId, const QApplication& app);
     ~SingleInstance();
 public slots:
     void AboutToQuit();
 private:
     QLockFile* lock;
-    QString lockFile;
+    QString lockId;
 };
 
 #endif // SINGLEINSTANCE_H
