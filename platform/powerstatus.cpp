@@ -98,7 +98,7 @@ bool PowerStatusLinux::Register(void* handle)
 
     if (!QDBusConnection::systemBus().isConnected())
     {
-        SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -111,7 +111,7 @@ bool PowerStatusLinux::Register(void* handle)
     if (dBusReply.isValid() == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
-                                      .arg(BL_PLATFORM, dBusReply.error().name(), dBusReply.error().message()));
+                                      .arg(SystemHelper::OSName(), dBusReply.error().name(), dBusReply.error().message()));
         return false;
     }
 
@@ -180,10 +180,22 @@ void PowerStatusLinux::Update()
     case 3: // Empty
     case 6: // Pending discharge
         this->m_BatteryCharging = false;
+        // In VMware, ACLineStatus is always true
+        if (this->m_ACLineStatus == true && 90 <= this->m_BatteryLevel)
+        {
+            this->m_BatteryFull = true;
+        }
+        else
+        {
+            this->m_ACLineStatus = false;
+            this->m_BatteryFull = false;
+        }
+        /*
         if (this->m_ACLineStatus == true)
             this->m_BatteryFull = true;
         else
             this->m_BatteryFull = false;
+        */
         break;
     case 4: // Fully charged
         this->m_BatteryCharging = false;
@@ -191,10 +203,10 @@ void PowerStatusLinux::Update()
         break;
     case 0: // Unknown OR Battery does not exist
         if (this->m_BatteryExist) // Error when battery DOES exist
-            SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(BL_PLATFORM));
+            SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(SystemHelper::OSName()));
         break;
     default:
-        SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(SystemHelper::OSName()));
         break;
     }
 
