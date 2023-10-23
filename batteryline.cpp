@@ -505,15 +505,11 @@ void BatteryLine::TrayMenuExit()
 void BatteryLine::TrayMenuPrintBanner()
 {
     QString msgStr =
-        QString("Joveler's BatteryLine v%1.%2 (%3, %4bit)\n"
+        QString("Joveler's BatteryLine v%1 (%2, %3)\n"
                 "Show battery status as line in screen.\n\n"
-                "[Homepage] %5\n\n"
-                "Build %6")
-        .arg(BL_MAJOR_VER)
-        .arg(BL_MINOR_VER)
-        .arg(SystemHelper::ArchOS())
-        .arg(SystemHelper::ArchBit())
-        .arg(BL_WEB_SOURCE, BL_REL_DATE);
+                "[Homepage] %4\n\n"
+                "Build %5")
+            .arg(BL_VER_INST.toString(), SystemHelper::OSName(), SystemHelper::ProcArch(), BL_WEB_SOURCE, BL_REL_DATE);
 
     QMessageBox msgBox;
     msgBox.setWindowIcon(QIcon(BL_ICON));

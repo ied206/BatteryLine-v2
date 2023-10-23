@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName(BL_ORG_NAME);
     QCoreApplication::setOrganizationDomain(BL_ORG_DOMAIN);
     QCoreApplication::setApplicationName(BL_APP_NAME);
-    QCoreApplication::setApplicationVersion(BL_VER_STING);
+    QCoreApplication::setApplicationVersion(BL_VER_INST.toString());
 
     // Parse Command Line Option
     QCommandLineParser parser;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
     // Force single instance at once
     SingleInstance single(BL_LOCKID, app);
-    (void) single;
+    (void)single;
 
     // Create BatteryLine instance
     BatteryLine line(parser.isSet(quietOption), parser.helpText());

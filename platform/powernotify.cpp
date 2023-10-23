@@ -29,7 +29,7 @@ bool PowerNotifyWin::Register(void* handle)
 {
     if (handle == nullptr)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -41,7 +41,7 @@ bool PowerNotifyWin::Register(void* handle)
     m_notBatPer = RegisterPowerSettingNotification(hWnd, &GUID_BATTERY_PERCENTAGE_REMAINING, DEVICE_NOTIFY_WINDOW_HANDLE);
     if (m_notPowerSrc == nullptr || m_notBatPer == nullptr)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot register PowerSettingNotification").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -52,7 +52,7 @@ bool PowerNotifyWin::Unregister()
 {
     if (m_notPowerSrc == nullptr || m_notBatPer == nullptr)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -62,7 +62,7 @@ bool PowerNotifyWin::Unregister()
     result &= UnregisterPowerSettingNotification(m_notPowerSrc);
     if (result == FALSE)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -86,7 +86,7 @@ bool PowerNotifyLinux::Register(void* handle)
 
     if (!QDBusConnection::systemBus().isConnected())
     {
-        SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot connect to D-Bus' system bus").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -96,7 +96,7 @@ bool PowerNotifyLinux::Register(void* handle)
     if (dBusReply.isValid() == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot get list of power devices\nError = %2, %3")
-                                      .arg(BL_PLATFORM, dBusReply.error().name(), dBusReply.error().message()));
+                                      .arg(SystemHelper::OSName(), dBusReply.error().name(), dBusReply.error().message()));
         return false;
     }
 
@@ -123,7 +123,7 @@ bool PowerNotifyLinux::Register(void* handle)
         result &= dBusSystem.connect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot register D-Bus System Bus").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot register D-Bus System Bus").arg(SystemHelper::OSName()));
         return false;
     }
 
@@ -140,7 +140,7 @@ bool PowerNotifyLinux::Unregister()
         result &= dBusSystem.connect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
     {
-        SystemHelper::SystemError(QString("[%1] Cannot unregister D-Bus System Bus").arg(BL_PLATFORM));
+        SystemHelper::SystemError(QString("[%1] Cannot unregister D-Bus System Bus").arg(SystemHelper::OSName()));
         return false;
     }
 

@@ -36,7 +36,9 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
             pidFile.close();
         }
         else // failure
-            SystemHelper::SystemError("Cannot write process id");
+        { // Silently ignore this, it is not likely to happen.
+            // SystemHelper::SystemWarning("BatteryLine is runnable, but it cannot write process id.");
+        }
     }
     else
     { // Lock failure, another instance is running - so kill that instance and terminate
@@ -51,7 +53,9 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
             pidFile.close();
         }
         else // failure
-            SystemHelper::SystemError("Cannot read process id");
+        {
+            SystemHelper::SystemError("Another instance of BatteryLine is running.");
+        }
 
         // Try to kill running instance and terminate
 #ifdef Q_OS_WIN
@@ -68,8 +72,7 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
             }
             hWndIter = GetWindow(hWndIter, GW_HWNDNEXT);
         }
-#endif
-#ifdef Q_OS_LINUX
+#elif defined(Q_OS_LINUX)
         pid_t linuxPid = static_cast<pid_t>(runningPid);
         kill(linuxPid, SIGTERM);
 #endif
