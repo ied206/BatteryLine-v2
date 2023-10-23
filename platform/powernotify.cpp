@@ -137,7 +137,7 @@ bool PowerNotifyLinux::Unregister()
     QDBusConnection dBusSystem = QDBusConnection::systemBus();
     result = dBusSystem.disconnect("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(BatteryInfoChanged(QString, QVariantMap, QStringList)));
     for (int i = 0; i < m_LinePower.count(); i++)
-        result &= dBusSystem.connect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
+        result &= dBusSystem.disconnect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
     {
         SystemHelper::SystemError(QString("[%1] Cannot unregister D-Bus System Bus").arg(SystemHelper::OSName()));
