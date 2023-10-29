@@ -1,0 +1,15 @@
+[Desktop Entry]
+Name=BatteryLine
+GenericName=BatteryLine
+Exec=BatteryLine
+Icon=BatteryLine
+Comment=Display system battery status as line
+Keywords=battery;power;
+Type=Application
+Categories=System;
+Terminal=false
+StartupNotify=false
+
+
+
+
