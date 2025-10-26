@@ -10,11 +10,11 @@
 #include <QDir>
 #include <QVersionNumber>
 
-#define BL_VER_INST         QVersionNumber(2, 1)
+#define BL_VER_INST         QVersionNumber(2, 1, 1)
 #ifdef _DEBUG // Debug - Use __DATE__
 #define BL_REL_DATE         (QString("%1%2%3").arg(SystemHelper::CompileYear(), 4, 10, QChar('0')).arg(SystemHelper::CompileMonth(), 2, 10, QChar('0')).arg(SystemHelper::CompileDay(), 2, 10, QChar('0')))
 #else // Release - Use internal date
-#define BL_REL_DATE         QString("20231023")
+#define BL_REL_DATE         QString("20251026")
 #endif
 #define BL_ORG_NAME         QString(RES_COMPANYNAME_STR)
 #define BL_ORG_DOMAIN       QString(RES_COMPANYDOMAIN_STR)
@@ -28,5 +28,8 @@
 // For Windows Platform
 #define BL_NOTIFY_APP_ON    1
 #define BL_NOTIFY_APP_OFF   2
+
+// Debugging Purposes
+#define BL_LOG_ENABLE
 
 #endif // VAR_H

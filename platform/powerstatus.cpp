@@ -71,12 +71,12 @@ void PowerStatusWin::Update()
     }
 
 #ifdef _DEBUG
-    qDebug() << "[BatteryStatus]";
-    qDebug() << "BatteryExist    : " << m_BatteryExist;
-    qDebug() << "BatteryLevel    : " << m_BatteryLevel;
-    qDebug() << "BatteryCharging : " << m_BatteryCharging;
-    qDebug() << "BatteryFull     : " << m_BatteryFull;
-    qDebug() << "ACLineStatus    : " << m_ACLineStatus << "\n";
+    qDebug().noquote() << "[BatteryStatus]";
+    qDebug().noquote() << "BatteryExist    : " << m_BatteryExist;
+    qDebug().noquote() << "BatteryLevel    : " << m_BatteryLevel;
+    qDebug().noquote() << "BatteryCharging : " << m_BatteryCharging;
+    qDebug().noquote() << "BatteryFull     : " << m_BatteryFull;
+    qDebug().noquote() << "ACLineStatus    : " << m_ACLineStatus << "\n";
 #endif
 }
 #endif
@@ -211,12 +211,12 @@ void PowerStatusLinux::Update()
     }
 
 #ifdef _DEBUG
-    qDebug() << "[BatteryStatus]";
-    qDebug() << "BatteryExist    : " << m_BatteryExist;
-    qDebug() << "BatteryLevel    : " << m_BatteryLevel;
-    qDebug() << "BatteryCharging : " << m_BatteryCharging;
-    qDebug() << "BatteryFull     : " << m_BatteryFull;
-    qDebug() << "ACLineStatus    : " << m_ACLineStatus << "\n";
+    qDebug().noquote() << "[BatteryStatus]";
+    qDebug().noquote() << "BatteryExist    : " << m_BatteryExist;
+    qDebug().noquote() << "BatteryLevel    : " << m_BatteryLevel;
+    qDebug().noquote() << "BatteryCharging : " << m_BatteryCharging;
+    qDebug().noquote() << "BatteryFull     : " << m_BatteryFull;
+    qDebug().noquote() << "ACLineStatus    : " << m_ACLineStatus << "\n";
 #endif
 }
 #endif

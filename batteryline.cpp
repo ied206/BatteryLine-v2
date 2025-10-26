@@ -270,13 +270,13 @@ void BatteryLine::SetWindowSizePos()
     updateGeometry();
 
 #ifdef _DEBUG
-    qDebug() << "[Monitor]";
-    qDebug() << QString("Displaying on monitor %1").arg(m_option.customMonitor);
-    qDebug() << QString("Base Coordinate        : (%1, %2)").arg(screenFullRect.left()).arg(screenFullRect.top());
-    qDebug() << QString("Screen Resolution      : (%1, %2)").arg(screenFullRect.width()).arg(screenFullRect.height());
-    qDebug() << QString("BatteryLine Coordinate : (%1, %2)").arg(appRect.left()).arg(appRect.top());
-    qDebug() << QString("BatteryLine Resolution : (%1, %2)").arg(appRect.width()).arg(appRect.height());
-    qDebug() << "";
+    qDebug().noquote() << "[Monitor]";
+    qDebug().noquote() << QString("Displaying on monitor %1").arg(m_option.customMonitor);
+    qDebug().noquote() << QString("Base Coordinate        : (%1, %2)").arg(screenFullRect.left()).arg(screenFullRect.top());
+    qDebug().noquote() << QString("Screen Resolution      : (%1, %2)").arg(screenFullRect.width()).arg(screenFullRect.height());
+    qDebug().noquote() << QString("BatteryLine Coordinate : (%1, %2)").arg(appRect.left()).arg(appRect.top());
+    qDebug().noquote() << QString("BatteryLine Resolution : (%1, %2)").arg(appRect.width()).arg(appRect.height());
+    qDebug().noquote() << "";
 #endif
 
 #ifdef Q_OS_WIN
@@ -374,8 +374,8 @@ void BatteryLine::PrimaryScreenChanged(QScreen* screen)
 {
     ChangeQScreenToSignal(screen);
 #ifdef _DEBUG
-    qDebug() << "[SLOT] PrimaryScreenChanged";
-    qDebug() << "";
+    qDebug().noquote() << "[SLOT] PrimaryScreenChanged";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -384,8 +384,8 @@ void BatteryLine::ScreenAdded(QScreen* screen)
 {
     ChangeQScreenToSignal(screen);
 #ifdef _DEBUG
-    qDebug() << "[SLOT] ScreenAdded";
-    qDebug() << "";
+    qDebug().noquote() << "[SLOT] ScreenAdded";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -394,8 +394,8 @@ void BatteryLine::ScreenRemoved(QScreen* screen)
 {
     ChangeQScreenToSignal(screen);
 #ifdef _DEBUG
-    qDebug() << "[SLOT] ScreenRemoved";
-    qDebug() << "";
+    qDebug().noquote() << "[SLOT] ScreenRemoved";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -405,8 +405,8 @@ void BatteryLine::AvailableGeometryChanged(const QRect &geometry)
 {
     Q_UNUSED(geometry);
 #ifdef _DEBUG
-    qDebug() << "[SLOT] AvailableGeometryChanged";
-    qDebug() << "";
+    qDebug().noquote() << "[SLOT] AvailableGeometryChanged";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -415,8 +415,8 @@ void BatteryLine::GeometryChanged(const QRect &geometry)
 {
     Q_UNUSED(geometry);
 #ifdef _DEBUG
-    qDebug() << "[SLOT] GeometryChanged";
-    qDebug() << "";
+    qDebug().noquote() << "[SLOT] GeometryChanged";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -425,8 +425,8 @@ void BatteryLine::GeometryChanged(const QRect &geometry)
 void BatteryLine::TimerTimeout()
 {
 #ifdef _DEBUG
-    qDebug() << "[D] SLOT: TimerTimeout";
-    qDebug() << "";
+    qDebug().noquote() << "[D] SLOT: TimerTimeout";
+    qDebug().noquote() << "";
 #endif
     DrawLine();
 }
@@ -799,15 +799,15 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, qintpt
         {
         case WM_POWERBROADCAST: // Power source changed, battery level dropped
 #ifdef _DEBUG
-            qDebug() << "[WM] WM_POWERBROADCAST";
-            qDebug() << "";
+            qDebug().noquote() << "[WM] WM_POWERBROADCAST";
+            qDebug().noquote() << "";
 #endif
             DrawLine();
             break;
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
 #ifdef _DEBUG
-            qDebug() << "[WM] WM_DISPLAYCHANGE";
-            qDebug() << "";
+            qDebug().noquote() << "[WM] WM_DISPLAYCHANGE";
+            qDebug().noquote() << "";
 #endif
             DrawLine();
             break;
