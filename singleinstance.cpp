@@ -43,19 +43,23 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
     else
     { // Lock failure, another instance is running - so kill that instance and terminate
         qint64 runningPid = 0;
+        bool pidOk = false;
 
         QFile pidFile(lockId + ".pid");
         if (pidFile.open(QIODevice::ReadOnly | QIODevice::Text))
         {
             QTextStream in(&pidFile);
             in.setEncoding(QStringConverter::Utf8);
-            runningPid = in.readLine().trimmed().toInt();
+            runningPid = in.readLine().trimmed().toLongLong(&pidOk);
             pidFile.close();
         }
         else // failure
         {
             SystemHelper::SystemError("Another instance of BatteryLine is running.");
         }
+
+        if (!pidOk || runningPid <= 0)
+            SystemHelper::SystemError("Cannot read process id");
 
         // Try to kill running instance and terminate
 #ifdef Q_OS_WIN
@@ -74,7 +78,8 @@ SingleInstance::SingleInstance(const QString lockId, const QApplication& app)
         }
 #elif defined(Q_OS_LINUX)
         pid_t linuxPid = static_cast<pid_t>(runningPid);
-        kill(linuxPid, SIGTERM);
+        if (linuxPid > 0)
+            kill(linuxPid, SIGTERM);
 #endif
 
         SystemHelper::QtExit(0);

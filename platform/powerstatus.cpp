@@ -36,8 +36,7 @@ PowerStatusWin::~PowerStatusWin()
 bool PowerStatusWin::Register(void* handle)
 {
     (void)handle;
-    Update();
-    return true;
+    return Update();
 }
 
 bool PowerStatusWin::Unregister()
@@ -45,30 +44,35 @@ bool PowerStatusWin::Unregister()
     return true;
 }
 
-// Return true if success
-void PowerStatusWin::Update()
+bool PowerStatusWin::Update()
 {
-    bool success = true;
     SYSTEM_POWER_STATUS batStat;
     if (!GetSystemPowerStatus(&batStat))
-        success = false; // Error
-    else if (batStat.BatteryFlag == 255 ||
-             batStat.ACLineStatus == 255 || // Check Error
-             (!(batStat.BatteryFlag & 128) && batStat.BatteryLifePercent == 255)) // Has Battery but BatteryLifePercent == 255 -> error
-        success = false;
+    {
+        qWarning() << "[Windows] Cannot retrieve power information.";
+        return false;
+    }
 
-    if (success)
+    if (batStat.BatteryFlag == 255 ||
+        batStat.ACLineStatus == 255 ||
+        (!(batStat.BatteryFlag & 128) && batStat.BatteryLifePercent == 255))
     {
-        this->m_BatteryExist = (batStat.BatteryFlag & 128) ? false : true;
-        this->m_BatteryLevel = batStat.BatteryLifePercent;
-        this->m_BatteryCharging = (batStat.BatteryFlag & 8) ? true : false;
-        this->m_BatteryFull = batStat.ACLineStatus && (batStat.BatteryFlag & 8) == false; // Not Charging, because battery is full
-        this->m_ACLineStatus = batStat.ACLineStatus ? true : false;
+        qWarning() << "[Windows] Power information is temporarily unavailable.";
+        return false;
     }
-    else
+
+    bool batteryExist = (batStat.BatteryFlag & 128) ? false : true;
+    if (!batteryExist && this->m_BatteryExist)
     {
-        SystemHelper::SystemError(QObject::tr("[Windows] Cannot retrieve power information.\n"));
+        qWarning() << "[Windows] Battery information is temporarily unavailable.";
+        return false;
     }
+
+    this->m_BatteryExist = batteryExist;
+    this->m_BatteryLevel = batStat.BatteryLifePercent;
+    this->m_BatteryCharging = (batStat.BatteryFlag & 8) ? true : false;
+    this->m_ACLineStatus = (batStat.ACLineStatus == 1) ? true : false;
+    this->m_BatteryFull = this->m_ACLineStatus && (batStat.BatteryFlag & 8) == false; // Not Charging, because battery is full
 
 #ifdef _DEBUG
     qDebug().noquote() << "[BatteryStatus]";
@@ -78,11 +82,14 @@ void PowerStatusWin::Update()
     qDebug().noquote() << "BatteryFull     : " << m_BatteryFull;
     qDebug().noquote() << "ACLineStatus    : " << m_ACLineStatus << "\n";
 #endif
+
+    return true;
 }
 #endif
 
 #ifdef Q_OS_LINUX
-PowerStatusLinux::PowerStatusLinux()
+PowerStatusLinux::PowerStatusLinux() :
+    m_CompositeBattery(nullptr)
 {
 
 }
@@ -132,9 +139,7 @@ bool PowerStatusLinux::Register(void* handle)
         }
     }
 
-    Update();
-
-    return true;
+    return Update();
 }
 
 bool PowerStatusLinux::Unregister()
@@ -148,31 +153,42 @@ bool PowerStatusLinux::Unregister()
 
     m_CompositeBattery = nullptr;
     m_LinePower.clear();
+
     return true;
 }
 
-// Return true if success
-void PowerStatusLinux::Update()
+bool PowerStatusLinux::Update()
 {
+    if (m_CompositeBattery == nullptr)
+        return false;
+
     // https://upower.freedesktop.org/docs/Device.html
     // line power status
-    QList<QVariant> acLineStatus;
+    this->m_ACLineStatus = false;
     for (int i = 0; i < m_LinePower.count(); i++)
-        acLineStatus.append(m_LinePower[i]->property("Online")); // bool
-    this->m_ACLineStatus = true;
-    for (int i = 0; i < acLineStatus.count(); i++)
-        this->m_ACLineStatus &= acLineStatus[i].toBool();
+    {
+        QVariant online = m_LinePower[i]->property("Online"); // bool
+        if (online.isValid())
+            this->m_ACLineStatus |= online.toBool();
+    }
 
     // battery status
     QVariant batteryLevel = m_CompositeBattery->property("Percentage"); // double
     QVariant batteryExist = m_CompositeBattery->property("IsPresent");  // bool
     QVariant batteryState = m_CompositeBattery->property("State");      // uint
+    if (!batteryLevel.isValid() || !batteryExist.isValid() || !batteryState.isValid())
+    {
+        qWarning() << "[Linux] Battery information is temporarily unavailable.";
+        return false;
+    }
+
     this->m_BatteryExist = batteryExist.toBool();
-    this->m_BatteryLevel = batteryLevel.toInt();
-    switch (batteryState.toInt())
+    this->m_BatteryLevel = qBound(0, batteryLevel.toInt(), 100);
+    switch (batteryState.toUInt())
     {
     case 1: // Charging
     case 5: // Pending charge
+        this->m_ACLineStatus = true;
         this->m_BatteryCharging = true;
         this->m_BatteryFull = false;
         break;
@@ -198,16 +214,20 @@ void PowerStatusLinux::Update()
         */
         break;
     case 4: // Fully charged
+        this->m_ACLineStatus = true;
         this->m_BatteryCharging = false;
         this->m_BatteryFull = true;
         break;
     case 0: // Unknown OR Battery does not exist
         if (this->m_BatteryExist) // Error when battery DOES exist
-            SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(SystemHelper::OSName()));
+        {
+            qWarning() << "[Linux] Battery state is temporarily unclear.";
+            return false;
+        }
         break;
     default:
-        SystemHelper::SystemError(QString("[%1] Battery state unclear").arg(SystemHelper::OSName()));
-        break;
+        qWarning() << "[Linux] Battery state is unclear:" << batteryState;
+        return false;
     }
 
 #ifdef _DEBUG
@@ -218,5 +238,7 @@ void PowerStatusLinux::Update()
     qDebug().noquote() << "BatteryFull     : " << m_BatteryFull;
     qDebug().noquote() << "ACLineStatus    : " << m_ACLineStatus << "\n";
 #endif
+
+    return true;
 }
 #endif

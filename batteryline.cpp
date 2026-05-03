@@ -14,12 +14,31 @@
 #include <QScreen>
 #include <QGuiApplication>
 
+#include <cstring>
+
 
 BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *parent):
     QWidget(parent),
     ui(new Ui::BatteryLine)
 {
     ui->setupUi(this);
+
+    m_powerStat = nullptr;
+    m_powerNotify = nullptr;
+    m_notification = nullptr;
+    m_timer = nullptr;
+    m_setting = nullptr;
+    m_trayIconMenu = nullptr;
+    m_trayIcon = nullptr;
+    m_printBannerAct = nullptr;
+    m_printHelpAct = nullptr;
+    m_openHomepageAct = nullptr;
+    m_openSettingAct = nullptr;
+    m_printPowerInfoAct = nullptr;
+    m_exitAct = nullptr;
+    m_muteNotifcation = mute;
+    m_settingLock = false;
+    memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
 
     // Layered Window + Always On Top
     // In Windows, windows would have WS_EX_TOPMOST (0x00000008) and WS_TOPMOST | WS_CLIPCHILDREN | WS_CLIPSIBLINGS (0x86000000) styles.
@@ -53,27 +72,14 @@ BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *paren
     // Connect Signal with m_powerNotify
     connect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
 
-    // Init Member Variables - Setting and Context Menu
-    m_setting = nullptr;
-    m_settingLock = false;
-
-    m_trayIconMenu = nullptr;
-    m_trayIcon = nullptr;
-
-    m_printBannerAct = nullptr;
-    m_printHelpAct = nullptr;
-    m_openHomepageAct = nullptr;
-    m_openSettingAct = nullptr;
-    m_printPowerInfoAct = nullptr;
-    m_exitAct = nullptr;
-
     // Help message will be used in PrintHelpBanner
     m_helpText = helpText;
 
     // Connect signal with screen change
     m_screen = QGuiApplication::primaryScreen();
     ConnectSignals(nullptr);
-    ConnectSignals(m_screen);
+    if (!m_screen.isNull())
+        ConnectSignals(m_screen.data());
 
     // Set a timer
     // Occasionally some fullscreen DirectX app hides window of BatteryLine. (e.g. Edge)
@@ -89,6 +95,7 @@ BatteryLine::BatteryLine(const bool mute, const QString helpText, QWidget *paren
     m_setting = new QSettings(QSettings::IniFormat, QSettings::UserScope, BL_ORG_NAME, BL_APP_NAME);
     memset(static_cast<void*>(&m_option), 0, sizeof(BL_OPTION));
     ReadSettings();
+    ChangeQScreenToSignal(TargetScreen());
 
     // Notification
     m_muteNotifcation = mute;
@@ -101,7 +108,8 @@ BatteryLine::~BatteryLine()
 {
     // Connect signal with screen change
     DisconnectSignals(nullptr);
-    DisconnectSignals(m_screen);
+    if (!m_screen.isNull())
+        DisconnectSignals(m_screen.data());
 
     // Disconnect Signal with m_powerNotify
     disconnect(m_powerNotify, &PowerNotify::RedrawSignal, this, &BatteryLine::DrawLine);
@@ -157,15 +165,17 @@ BatteryLine::~BatteryLine()
 
 void BatteryLine::DrawLine()
 {
-    m_powerStat->Update();
+    if (m_powerStat == nullptr)
+        return;
+
+    if (!m_powerStat->Update())
+        return;
+
     if (!m_powerStat->m_BatteryExist)
     {
         if (m_muteNotifcation)
         {
-            if (SystemHelper::setEventLoopRunning())
-                exit(1);
-            else
-                QCoreApplication::exit(1);
+            SystemHelper::QtExit(1);
         }
         else
         {
@@ -176,26 +186,38 @@ void BatteryLine::DrawLine()
     SetWindowSizePos();
 }
 
+void BatteryLine::ScheduleDrawLine(int delayMs)
+{
+    QTimer::singleShot(delayMs, this, [this]() {
+        DrawLine();
+    });
+}
+
+QScreen* BatteryLine::TargetScreen() const
+{
+    QList<QScreen*> screens = QGuiApplication::screens();
+    QScreen* primaryScreen = QGuiApplication::primaryScreen();
+
+    if (m_option.mainMonitor)
+        return primaryScreen != nullptr ? primaryScreen : (screens.isEmpty() ? nullptr : screens.first());
+
+    if (0 <= m_option.customMonitor && m_option.customMonitor < screens.size())
+        return screens.at(m_option.customMonitor);
+
+    qWarning() << "[Monitor] Custom monitor index is unavailable:" << m_option.customMonitor;
+    return primaryScreen != nullptr ? primaryScreen : (screens.isEmpty() ? nullptr : screens.first());
+}
+
 // Must update m_batStat first
 void BatteryLine::SetWindowSizePos()
 {
-    QScreen* targetScreen;
     QRect screenWorkRect; // availableGeometry - Resolution excluding taskbar
     QRect screenFullRect; // screenGeometry - Full resoultion
     QRect appRect;
 
-    if (m_option.mainMonitor == true) // Main Monitor
-    {
-        targetScreen = QGuiApplication::primaryScreen();
-    }
-    else // Custom Monitor
-    {
-        QList<QScreen*> screens = QGuiApplication::screens();
-        if (0 <= m_option.customMonitor || m_option.customMonitor <= screens.size())
-            targetScreen = screens.at(m_option.customMonitor);
-        else // Silently fallback to primary monitor
-            targetScreen = QGuiApplication::primaryScreen();
-    }
+    QScreen* targetScreen = TargetScreen();
+    if (targetScreen == nullptr)
+        return;
 
     // m_screen = targetScreen;
     screenWorkRect = targetScreen->availableGeometry();
@@ -360,44 +382,64 @@ void BatteryLine::DisconnectSignals(QScreen* screen)
 
 void BatteryLine::ChangeQScreenToSignal(QScreen* newScreen)
 {
-    QScreen* oldScreen = m_screen;
-    if (oldScreen == nullptr || QString::compare(oldScreen->name(), newScreen->name(), Qt::CaseSensitive) != 0)
-    {
-        m_screen = newScreen;
+    QScreen* oldScreen = m_screen.data();
+    if (oldScreen == newScreen)
+        return;
+
+    if (oldScreen != nullptr)
         DisconnectSignals(oldScreen);
+
+    m_screen = newScreen;
+
+    if (newScreen != nullptr)
         ConnectSignals(newScreen);
-    }
 }
 
 // QGuiApplication slots
 void BatteryLine::PrimaryScreenChanged(QScreen* screen)
 {
-    ChangeQScreenToSignal(screen);
+    Q_UNUSED(screen);
+    ChangeQScreenToSignal(TargetScreen());
 #ifdef _DEBUG
     qDebug().noquote() << "[SLOT] PrimaryScreenChanged";
     qDebug().noquote() << "";
 #endif
-    DrawLine();
+    ScheduleDrawLine();
 }
 
 void BatteryLine::ScreenAdded(QScreen* screen)
 {
-    ChangeQScreenToSignal(screen);
+    Q_UNUSED(screen);
+    ChangeQScreenToSignal(TargetScreen());
 #ifdef _DEBUG
     qDebug().noquote() << "[SLOT] ScreenAdded";
     qDebug().noquote() << "";
 #endif
-    DrawLine();
+    ScheduleDrawLine();
 }
 
 void BatteryLine::ScreenRemoved(QScreen* screen)
 {
-    ChangeQScreenToSignal(screen);
+    QScreen* targetScreen = TargetScreen();
+    if (targetScreen == screen)
+    {
+        targetScreen = nullptr;
+        const QList<QScreen*> screens = QGuiApplication::screens();
+        for (QScreen* candidate : screens)
+        {
+            if (candidate != screen)
+            {
+                targetScreen = candidate;
+                break;
+            }
+        }
+    }
+    ChangeQScreenToSignal(targetScreen);
 #ifdef _DEBUG
     qDebug().noquote() << "[SLOT] ScreenRemoved";
     qDebug().noquote() << "";
 #endif
-    DrawLine();
+    ScheduleDrawLine();
 }
 
 // QScreen slots
@@ -562,7 +604,9 @@ void BatteryLine::TrayMenuSetting()
 
 void BatteryLine::TrayMenuPowerInfo()
 {
-    m_powerStat->Update();
+    if (!m_powerStat->Update())
+        return;
+
     QString msgAcPower, msgCharge, msgFull;
     if (m_powerStat->m_ACLineStatus == true)
         msgAcPower = tr("AC");
@@ -621,6 +665,9 @@ void BatteryLine::SettingSlotGeneral(SettingGeneralKey key, QVariant entry)
         break;
     }
 
+    if (key == SettingGeneralKey::MainMonitor || key == SettingGeneralKey::CustomMonitor)
+        ChangeQScreenToSignal(TargetScreen());
+
     DrawLine();
     WriteSettings();
 }
@@ -676,13 +723,13 @@ void BatteryLine::SettingSlotDefault()
 void BatteryLine::ReadSettings()
 {
     // Default Value
-    m_option.height = m_setting->value("height", 5).toInt();
-    m_option.position = m_setting->value("position", static_cast<int>(SettingPosition::Top)).toInt();
-    m_option.transparency = m_setting->value("transparency", 196).toInt();
+    m_option.height = qBound(1, m_setting->value("height", 5).toInt(), 100);
+    m_option.position = qBound(static_cast<int>(SettingPosition::Top), m_setting->value("position", static_cast<int>(SettingPosition::Top)).toInt(), static_cast<int>(SettingPosition::Right));
+    m_option.transparency = qBound(1, m_setting->value("transparency", 196).toInt(), 255);
     m_option.showCharge = m_setting->value("showcharge", true).toBool();
-    m_option.align = m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toInt();
+    m_option.align = qBound(static_cast<int>(SettingAlign::LeftTop), m_setting->value("align", static_cast<int>(SettingAlign::LeftTop)).toInt(), static_cast<int>(SettingAlign::RightBottom));
     int monitor = m_setting->value("monitor", static_cast<int>(SettingMonitor::Primary)).toInt();
-    if (monitor == static_cast<int>(SettingMonitor::Primary))
+    if (monitor <= static_cast<int>(SettingMonitor::Primary))
     {
         m_option.mainMonitor = true;
         m_option.customMonitor = 0;
@@ -702,18 +749,18 @@ void BatteryLine::ReadSettings()
     m_setting->beginGroup("CustomColor");
     m_option.customEnable[0] = m_setting->value("customenable1", true).toBool();
     m_option.customColor[0] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor1", SystemHelper::RGB_QColorToQString(QColor(237, 28, 36))).toString());
-    m_option.lowEdge[0] = m_setting->value("lowedge1", 0).toInt();
-    m_option.highEdge[0] = m_setting->value("highedge1", 20).toInt();
+    m_option.lowEdge[0] = qBound(0, m_setting->value("lowedge1", 0).toInt(), 100);
+    m_option.highEdge[0] = qBound(0, m_setting->value("highedge1", 20).toInt(), 100);
     m_option.customEnable[1] = m_setting->value("customenable2", true).toBool();
     m_option.customColor[1] = SystemHelper::RGB_QStringToQColor(m_setting->value("customcolor2", SystemHelper::RGB_QColorToQString(QColor(255, 140, 15))).toString());
-    m_option.lowEdge[1] = m_setting->value("lowedge2", 20).toInt();
-    m_option.highEdge[1] = m_setting->value("highedge2", 50).toInt();
+    m_option.lowEdge[1] = qBound(0, m_setting->value("lowedge2", 20).toInt(), 100);
+    m_option.highEdge[1] = qBound(0, m_setting->value("highedge2", 50).toInt(), 100);
     for (uint i = 2; i < BL_COLOR_LEVEL; i++)
     {
         m_option.customEnable[i] = m_setting->value(QString("customenable%1").arg(i + 1), false).toBool();
         m_option.customColor[i] = SystemHelper::RGB_QStringToQColor(m_setting->value(QString("customcolor%1").arg(i + 1), SystemHelper::RGB_QColorToQString(BL_DEFAULT_DISABLED_COLOR)).toString());
-        m_option.lowEdge[i] = m_setting->value(QString("lowedge%1").arg(i + 1), 0).toInt();
-        m_option.highEdge[i] = m_setting->value(QString("highedge%1").arg(i + 1), 0).toInt();
+        m_option.lowEdge[i] = qBound(0, m_setting->value(QString("lowedge%1").arg(i + 1), 0).toInt(), 100);
+        m_option.highEdge[i] = qBound(0, m_setting->value(QString("highedge%1").arg(i + 1), 0).toInt(), 100);
     }
     m_setting->endGroup();
 }
@@ -797,19 +844,40 @@ bool BatteryLine::nativeEvent(const QByteArray &eventType, void *message, qintpt
 
         switch (msg->message)
         {
-        case WM_POWERBROADCAST: // Power source changed, battery level dropped
+        case WM_POWERBROADCAST:
 #ifdef _DEBUG
             qDebug().noquote() << "[WM] WM_POWERBROADCAST";
             qDebug().noquote() << "";
 #endif
-            DrawLine();
+            switch (msg->wParam)
+            {
+            case PBT_APMSUSPEND:
+                if (m_timer != nullptr)
+                    m_timer->stop();
+                break;
+            case PBT_APMRESUMEAUTOMATIC:
+            case PBT_APMRESUMESUSPEND:
+                if (m_timer != nullptr && !m_timer->isActive())
+                    m_timer->start(60 * 1000);
+                ScheduleDrawLine(1000);
+                ScheduleDrawLine(5000);
+                break;
+            case PBT_APMPOWERSTATUSCHANGE:
+            case PBT_POWERSETTINGCHANGE:
+                ScheduleDrawLine();
+                break;
+            default:
+                break;
+            }
             break;
         case WM_DISPLAYCHANGE: // Monitor is attached or detached, Screen resolution changed, etc. Check for HMONITOR's validity.
 #ifdef _DEBUG
             qDebug().noquote() << "[WM] WM_DISPLAYCHANGE";
             qDebug().noquote() << "";
 #endif
-            DrawLine();
+            ChangeQScreenToSignal(TargetScreen());
+            ScheduleDrawLine();
+            ScheduleDrawLine(1000);
             break;
         default:
             break;

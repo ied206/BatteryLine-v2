@@ -15,7 +15,10 @@ PowerNotify* PowerNotify::CreateInstance()
 }
 
 #ifdef Q_OS_WIN
-PowerNotifyWin::PowerNotifyWin()
+PowerNotifyWin::PowerNotifyWin() :
+    m_hWnd(nullptr),
+    m_notPowerSrc(nullptr),
+    m_notBatPer(nullptr)
 {
 
 }
@@ -50,16 +53,18 @@ bool PowerNotifyWin::Register(void* handle)
 
 bool PowerNotifyWin::Unregister()
 {
-    if (m_notPowerSrc == nullptr || m_notBatPer == nullptr)
-    {
-        SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(SystemHelper::OSName()));
-        return false;
-    }
-
     // Unregister from power notification
-    BOOL result;
-    result = UnregisterPowerSettingNotification(m_notBatPer);
-    result &= UnregisterPowerSettingNotification(m_notPowerSrc);
+    BOOL result = TRUE;
+    if (m_notBatPer != nullptr)
+    {
+        result &= UnregisterPowerSettingNotification(m_notBatPer);
+        m_notBatPer = nullptr;
+    }
+    if (m_notPowerSrc != nullptr)
+    {
+        result &= UnregisterPowerSettingNotification(m_notPowerSrc);
+        m_notPowerSrc = nullptr;
+    }
     if (result == FALSE)
     {
         SystemHelper::SystemError(QString("[%1] Cannot unregister PowerSettingNotification").arg(SystemHelper::OSName()));
@@ -133,9 +138,9 @@ bool PowerNotifyLinux::Register(void* handle)
 bool PowerNotifyLinux::Unregister()
 {
     // Unregister from power notification
-    bool result;
+    bool result = true;
     QDBusConnection dBusSystem = QDBusConnection::systemBus();
-    result = dBusSystem.disconnect("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(BatteryInfoChanged(QString, QVariantMap, QStringList)));
+    result &= dBusSystem.disconnect("org.freedesktop.UPower", "/org/freedesktop/UPower/devices/DisplayDevice", "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(BatteryInfoChanged(QString, QVariantMap, QStringList)));
     for (int i = 0; i < m_LinePower.count(); i++)
         result &= dBusSystem.disconnect("org.freedesktop.UPower", m_LinePower[i], "org.freedesktop.DBus.Properties", "PropertiesChanged", this, SLOT(ACLineInfoChanged(QString, QVariantMap, QStringList)));
     if (result == false)
@@ -143,6 +148,8 @@ bool PowerNotifyLinux::Unregister()
         SystemHelper::SystemError(QString("[%1] Cannot unregister D-Bus System Bus").arg(SystemHelper::OSName()));
         return false;
     }
+
+    m_LinePower.clear();
 
     return true;
 }

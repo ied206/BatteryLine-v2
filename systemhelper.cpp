@@ -209,7 +209,11 @@ QColor SystemHelper::RGB_QStringToQColor(const QString str)
 
     for (int i = 0; i < list.count(); i++)
     {
-        int val = list[i].trimmed().toInt();
+        bool ok = false;
+        int val = list[i].trimmed().toInt(&ok);
+        if (!ok || val < 0 || 255 < val)
+            SystemError("[Setting] Invalid color value, RGB entries must be integers from 0 to 255");
+
         switch (i)
         {
         case 0:

@@ -8,6 +8,8 @@
 #include <QSystemTrayIcon>
 #include <QString>
 #include <QSettings>
+#include <QPointer>
+#include <QScreen>
 
 #include "settingdialog.h"
 
@@ -62,9 +64,11 @@ private:
     void DrawLine();
     void SetWindowSizePos();
     void SetColor();
+    void ScheduleDrawLine(int delayMs = 0);
     // Manage QGuiApplication and QScreen Signals
     void ConnectSignals(QScreen* screen = nullptr);
     void DisconnectSignals(QScreen* screen = nullptr);
+    QScreen* TargetScreen() const;
     void ChangeQScreenToSignal(QScreen* newScreen);
     // TrayMenu
     void CreateTrayIcon();
@@ -76,7 +80,7 @@ private:
 
 // Member Variables
     // QScreen slot sender
-    QScreen* m_screen;
+    QPointer<QScreen> m_screen;
 
     // Power Notification
     Notification* m_notification;

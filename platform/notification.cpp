@@ -25,7 +25,8 @@ Notification* Notification::CreateInstance()
 #ifdef Q_OS_WIN
 NotificationWin::NotificationWin()
 {
-
+    hWnd = nullptr;
+    hInst = nullptr;
 }
 
 NotificationWin::~NotificationWin()
@@ -35,6 +36,9 @@ NotificationWin::~NotificationWin()
 
 bool NotificationWin::Register(void* handle)
 {
+    if (handle == nullptr)
+        return false;
+
     HWND hWnd = reinterpret_cast<HWND>(handle);
 
     this->hWnd = hWnd;
@@ -50,6 +54,9 @@ bool NotificationWin::Unregister()
 
 int NotificationWin::SendNotification(const uint id, const QString &summary, const QString &body, const uint win_flags, const uint win_infoFlags)
 {
+    if (hWnd == nullptr)
+        return -1;
+
     NOTIFYICONDATAW nid;
     ZeroMemory(&nid, sizeof(NOTIFYICONDATAW));
 
@@ -70,17 +77,23 @@ int NotificationWin::SendNotification(const uint id, const QString &summary, con
     StringCchCopyW(nid.szInfo, ARRAYSIZE(nid.szInfo), reinterpret_cast<STRSAFE_LPCWSTR>(body.utf16()));
     nid.uVersion 	= NOTIFYICON_VERSION_4;
 
-    Shell_NotifyIconW(NIM_SETVERSION, &nid);
-    Shell_NotifyIconW(NIM_ADD, &nid);
+    BOOL result = Shell_NotifyIconW(NIM_ADD, &nid);
+    if (result)
+        Shell_NotifyIconW(NIM_SETVERSION, &nid);
 
     DeleteNotification(id);
-    return 0;
+    if (nid.hIcon != nullptr)
+        DestroyIcon(nid.hIcon);
+
+    return result ? 0 : -1;
 }
 
 void NotificationWin::DeleteNotification(const uint id)
 {
     NOTIFYICONDATAW nid;
+    ZeroMemory(&nid, sizeof(NOTIFYICONDATAW));
 
+    nid.cbSize = sizeof(NOTIFYICONDATAW);
     nid.hWnd = hWnd;
     nid.uID = id;
 
@@ -124,8 +137,8 @@ int NotificationLinux::SendNotification(const uint id, const QString &summary, c
     // https://developer.gnome.org/notification-spec/
     // http://www.galago-project.org/specs/notification/0.9/x408.html
     // $ qdbus org.freedesktop.Notifications /org/freedesktop/Notifications
-    QDBusConnection dBusNotify = QDBusConnection::connectToBus(QDBusConnection::SessionBus, "org.freedesktop.Notifications");
-    QDBusMessage dBusReqeust = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify");
+    QDBusConnection dBusNotify = QDBusConnection::sessionBus();
+    QDBusMessage dBusRequest = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "Notify");
 
     QList<QVariant> dBusArg;
     dBusArg.append("BatteryLine"); // app_name
@@ -136,25 +149,26 @@ int NotificationLinux::SendNotification(const uint id, const QString &summary, c
     dBusArg.append(QStringList()); // actions
     dBusArg.append(QVariantMap()); // hints
     dBusArg.append(-1); // expire_timeout
-    dBusReqeust.setArguments(dBusArg);
-    QDBusMessage dBusReply = dBusNotify.call(dBusReqeust, QDBus::Block);
-    if (dBusReply.type() == QDBusMessage::ErrorMessage)
-        SystemHelper::SystemError("[Linux] Cannot send notification through D-Bus");
+    dBusRequest.setArguments(dBusArg);
+    QDBusReply<uint> dBusReply = dBusNotify.call(dBusRequest, QDBus::Block);
+    if (!dBusReply.isValid())
+        SystemHelper::SystemError(QString("[Linux] Cannot send notification through D-Bus\nError = %1, %2")
+                                  .arg(dBusReply.error().name(), dBusReply.error().message()));
 
-    QList<QVariant> dBusReturn = dBusReply.arguments();
-    return dBusReturn.first().toUInt();
+    return dBusReply.value();
 }
 
 void NotificationLinux::DeleteNotification(const uint id)
 {
-    QDBusConnection dBusNotify = QDBusConnection::connectToBus(QDBusConnection::SessionBus, "org.freedesktop.Notifications");
-    QDBusMessage dBusReqeust = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "CloseNotification");
+    QDBusConnection dBusNotify = QDBusConnection::sessionBus();
+    QDBusMessage dBusRequest = QDBusMessage::createMethodCall("org.freedesktop.Notifications", "/org/freedesktop/Notifications", "org.freedesktop.Notifications", "CloseNotification");
 
     QList<QVariant> dBusArg;
     dBusArg.append(id); // replaces_id
-    dBusReqeust.setArguments(dBusArg);
-    QDBusMessage dBusReply = dBusNotify.call(dBusReqeust, QDBus::Block);
-    if (dBusReply.type() == QDBusMessage::ErrorMessage)
-        SystemHelper::SystemError("[Linux] Cannot delete notification through D-Bus");
+    dBusRequest.setArguments(dBusArg);
+    QDBusReply<void> dBusReply = dBusNotify.call(dBusRequest, QDBus::Block);
+    if (!dBusReply.isValid())
+        SystemHelper::SystemError(QString("[Linux] Cannot delete notification through D-Bus\nError = %1, %2")
+                                  .arg(dBusReply.error().name(), dBusReply.error().message()));
 }
 #endif

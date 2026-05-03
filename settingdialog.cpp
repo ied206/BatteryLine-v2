@@ -6,10 +6,12 @@
 
 #include <QColorDialog>
 #include <QAbstractButton>
+#include <QDialogButtonBox>
 #include <QDebug>
 #include <QMessageBox>
 #include <QScreen>
 #include <QList>
+#include <QSignalBlocker>
 
 SettingDialog::SettingDialog(BL_OPTION option, BL_OPTION defaultOption, QWidget *parent):
     QDialog(parent),
@@ -64,6 +66,9 @@ void SettingDialog::on_mainMonitorCheckBox_toggled(bool checked)
 
 void SettingDialog::on_customMonitorComboBox_currentIndexChanged(int index)
 {
+    if (index < 0)
+        return;
+
     emit SignalGeneral(SettingGeneralKey::CustomMonitor, index);
 }
 
@@ -105,6 +110,9 @@ void SettingDialog::on_fullColorPushButton_clicked()
 
 void SettingDialog::on_customEnableComboBox_currentIndexChanged(int index)
 {
+    if (index < 0 || BL_COLOR_LEVEL <= index)
+        return;
+
     // CustomColor
     m_customColorIndex = index;
     ui->customEnableComboBox->setCurrentIndex(static_cast<int>(m_customColorIndex));
@@ -125,6 +133,9 @@ void SettingDialog::on_customEnableComboBox_currentIndexChanged(int index)
 
 void SettingDialog::on_customEnableCheckBox_toggled(bool checked)
 {
+    if (m_customColorIndex < 0 || BL_COLOR_LEVEL <= m_customColorIndex)
+        return;
+
     m_option.customEnable[m_customColorIndex] = checked;
     emit SignalCustomColor(SettingCustomColorKey::Enable, m_customColorIndex, checked);
 
@@ -139,6 +150,9 @@ void SettingDialog::on_customEnableCheckBox_toggled(bool checked)
 
 void SettingDialog::on_lowEdgeSpinBox_valueChanged(int value)
 {
+    if (m_customColorIndex < 0 || BL_COLOR_LEVEL <= m_customColorIndex)
+        return;
+
     // Check validity when dialog is closed
     if (m_option.customEnable[m_customColorIndex])
         m_option.lowEdge[m_customColorIndex] = value;
@@ -146,6 +160,9 @@ void SettingDialog::on_lowEdgeSpinBox_valueChanged(int value)
 
 void SettingDialog::on_highEdgeSpinBox_valueChanged(int value)
 {
+    if (m_customColorIndex < 0 || BL_COLOR_LEVEL <= m_customColorIndex)
+        return;
+
     // Check validity when dialog is closed
     if (m_option.customEnable[m_customColorIndex])
         m_option.highEdge[m_customColorIndex] = value;
@@ -153,10 +170,14 @@ void SettingDialog::on_highEdgeSpinBox_valueChanged(int value)
 
 void SettingDialog::on_customColorPushButton_clicked()
 {
+    if (m_customColorIndex < 0 || BL_COLOR_LEVEL <= m_customColorIndex)
+        return;
+
     QColor color = QColorDialog::getColor(m_option.customColor[m_customColorIndex], this);
     if (color.isValid())
     {
         m_option.customColor[m_customColorIndex] = color;
+        ui->customColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.customColor[m_customColorIndex]) + ")");
         ui->customColorPushButton->setPalette(m_option.customColor[m_customColorIndex]);
         emit SignalCustomColor(SettingCustomColorKey::Color, m_customColorIndex, color);
     }
@@ -164,8 +185,7 @@ void SettingDialog::on_customColorPushButton_clicked()
 
 void SettingDialog::on_buttonBox_clicked(QAbstractButton *button)
 {
-    QString text = button->text();
-    if (text == "Reset")
+    if (ui->buttonBox->standardButton(button) == QDialogButtonBox::Reset)
     {
         m_option = m_default;
         emit SignalDefaultSetting();
@@ -192,17 +212,21 @@ void SettingDialog::UpdateDialog()
     QList<QScreen*> screens = QGuiApplication::screens();
     int screenCount = screens.size();
 
-    ui->customMonitorComboBox->clear();
-    for (int i = 0; i < screenCount; i++)
     {
-        QScreen* screen = screens.at(i);
-        QRect screenRect = screen->geometry();
-        ui->customMonitorComboBox->addItem(QString("Monitor %1 (%2x%3)")
-                                           .arg(i + 1)
-                                           .arg(screenRect.width()).
-                                           arg(screenRect.height()));
+        const QSignalBlocker blocker(ui->customMonitorComboBox);
+        ui->customMonitorComboBox->clear();
+        for (int i = 0; i < screenCount; i++)
+        {
+            QScreen* screen = screens.at(i);
+            QRect screenRect = screen->geometry();
+            ui->customMonitorComboBox->addItem(QString("Monitor %1 (%2x%3)")
+                                               .arg(i + 1)
+                                               .arg(screenRect.width()).
+                                               arg(screenRect.height()));
+        }
+        int monitorIndex = screenCount == 0 ? -1 : qBound(0, m_option.customMonitor, screenCount - 1);
+        ui->customMonitorComboBox->setCurrentIndex(monitorIndex);
     }
-    ui->customMonitorComboBox->setCurrentIndex(m_option.customMonitor);
 
     // BasicColor
     ui->defaultColorPushButton->setText("(" + SystemHelper::RGB_QColorToQString(m_option.defaultColor) + ")");
@@ -213,6 +237,7 @@ void SettingDialog::UpdateDialog()
     ui->fullColorPushButton->setPalette(m_option.fullColor);
 
     // CustomColor
+    m_customColorIndex = qBound(0, m_customColorIndex, BL_COLOR_LEVEL - 1);
     ui->customEnableComboBox->setCurrentIndex(m_customColorIndex);
     ui->customEnableCheckBox->setChecked(m_option.customEnable[m_customColorIndex]);
 
@@ -240,6 +265,12 @@ void SettingDialog::reject()
 
 void SettingDialog::done(int ret)
 {
+    for (int i = 0; i < BL_COLOR_LEVEL; i++)
+    {
+        m_option.lowEdge[i] = qBound(0, m_option.lowEdge[i], 100);
+        m_option.highEdge[i] = qBound(0, m_option.highEdge[i], 100);
+    }
+
     // Check if (lowEdge < highEdge)
     for (int i = 0; i < BL_COLOR_LEVEL; i++)
     {
@@ -247,8 +278,8 @@ void SettingDialog::done(int ret)
         {
             if (m_option.lowEdge[i] < m_option.highEdge[i])
             {
-                emit SignalCustomColor(SettingCustomColorKey::LowEdge, m_customColorIndex, ui->lowEdgeSpinBox->value());
-                emit SignalCustomColor(SettingCustomColorKey::HighEdge, m_customColorIndex, ui->highEdgeSpinBox->value());
+                emit SignalCustomColor(SettingCustomColorKey::LowEdge, i, m_option.lowEdge[i]);
+                emit SignalCustomColor(SettingCustomColorKey::HighEdge, i, m_option.highEdge[i]);
             }
             else // if (m_option.lowEdge[i] != 0 && m_option.highEdge[i] != 0)
             {
@@ -285,23 +316,40 @@ void SettingDialog::done(int ret)
     {
         if (1 < covered[i])
         { // Overlap detected!
-            int x, overlapStart = i, overlapEnd = i;
+            int x, overlapStart = i, overlapEnd = 100;
             for (x = i + 1; x < 100; x++)
             {
-                if (covered[x] == 1)
+                if (covered[x] < 2)
                 {
                     overlapEnd = x;
                     break;
                 }
             }
 
-            int overlapStartIndex = 0, overlapEndIndex = 0;
+            int overlapStartIndex = -1, overlapEndIndex = -1;
             for (x = 0; x < BL_COLOR_LEVEL; x++)
             {
-                if (m_option.lowEdge[x] < overlapStart && overlapStart < m_option.highEdge[x])
-                    overlapStartIndex = x;
-                else if (m_option.lowEdge[x] < overlapEnd && overlapEnd < m_option.highEdge[x])
-                    overlapEndIndex = x;
+                if (!m_option.customEnable[x])
+                    continue;
+
+                if (m_option.lowEdge[x] <= overlapStart && overlapStart < m_option.highEdge[x])
+                {
+                    if (overlapStartIndex == -1)
+                        overlapStartIndex = x;
+                    else
+                    {
+                        overlapEndIndex = x;
+                        break;
+                    }
+                }
+            }
+
+            if (overlapEndIndex == -1)
+                overlapEndIndex = overlapStartIndex;
+            if (overlapStartIndex == -1)
+            {
+                QDialog::done(ret);
+                return;
             }
 
             if (ret == QDialog::Accepted)
@@ -309,7 +357,7 @@ void SettingDialog::done(int ret)
                 QMessageBox msgBox;
                 msgBox.setWindowIcon(QIcon(BL_ICON));
                 msgBox.setWindowTitle(tr("Custom Color Error"));
-                msgBox.setText(QString("Threshold overlapped from %1 to %2!\nCheck Threshold %3 and %4.").arg(overlapStart).arg(overlapEnd).arg(overlapStartIndex).arg(overlapEndIndex));
+                msgBox.setText(QString("Threshold overlapped from %1 to %2!\nCheck Threshold %3 and %4.").arg(overlapStart).arg(overlapEnd).arg(overlapStartIndex + 1).arg(overlapEndIndex + 1));
                 msgBox.setIcon(QMessageBox::Critical);
                 msgBox.setStandardButtons(QMessageBox::Ok);
                 msgBox.setDefaultButton(QMessageBox::Ok);

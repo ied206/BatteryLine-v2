@@ -27,14 +27,20 @@ public:
     // Is this system charging with AC Line?
     bool m_ACLineStatus;
 
-    PowerStatus() { };
+    PowerStatus() :
+        m_BatteryExist(false),
+        m_BatteryLevel(0),
+        m_BatteryCharging(false),
+        m_BatteryFull(false),
+        m_ACLineStatus(false)
+    { };
     virtual ~PowerStatus() { };
     static PowerStatus* CreateInstance();
 
     virtual bool Register(void* handle) = 0;
     virtual bool Unregister() = 0;
 
-    virtual void Update() = 0;
+    virtual bool Update() = 0;
 };
 
 #ifdef Q_OS_WIN
@@ -47,7 +53,7 @@ public:
     virtual bool Register(void* handle);
     virtual bool Unregister();
 
-    virtual void Update();
+    virtual bool Update();
 };
 #endif
 
@@ -61,7 +67,7 @@ public:
     virtual bool Register(void* handle);
     virtual bool Unregister();
 
-    virtual void Update();
+    virtual bool Update();
 
 protected:
     QDBusInterface* m_CompositeBattery;
